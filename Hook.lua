@@ -1,31 +1,32 @@
 -- ==========================================================
--- HOOK LOADSTRING - BẢN ĐƠN GIẢN NHẤT (Hoạt động 100%)
+-- HOOK LOADSTRING - DÙNG GETFENV (KHÔNG DÙNG _G)
 -- ==========================================================
 
 print("=":rep(50))
-print("🔧 CÀI HOOK LOADSTRING (BẢN ĐƠN GIẢN)")
+print("🔧 CÀI HOOK LOADSTRING (DÙNG GETFENV)")
 print("=":rep(50))
 
 -- ========================================
--- 1. KIỂM TRA CÁC HÀM CƠ BẢN
+-- 1. LẤY MÔI TRƯỜNG HIỆN TẠI
+-- ========================================
+local env = getfenv()
+local oldPrint = print
+local oldLoadstring = loadstring
+
+-- ========================================
+-- 2. KIỂM TRA HÀM HỖ TRỢ
 -- ========================================
 local hasWritefile = type(writefile) == "function"
 local hasSetclipboard = type(setclipboard) == "function"
 local hasMakefolder = type(makefolder) == "function"
 
-print("📌 Hỗ trợ:")
-print("  writefile: " .. tostring(hasWritefile))
-print("  setclipboard: " .. tostring(hasSetclipboard))
-print("  makefolder: " .. tostring(hasMakefolder))
+oldPrint("📌 Hỗ trợ:")
+oldPrint("  writefile: " .. tostring(hasWritefile))
+oldPrint("  setclipboard: " .. tostring(hasSetclipboard))
+oldPrint("  makefolder: " .. tostring(hasMakefolder))
 
 -- ========================================
--- 2. LƯU HÀM GỐC
--- ========================================
-local oldLoadstring = loadstring
-local oldPrint = print
-
--- ========================================
--- 3. HÀM LƯU CODE
+-- 3. HÀM LƯU CODE (DÙNG BIẾN CỤC BỘ TRONG ENV)
 -- ========================================
 local function saveCode(code, label)
     if not code or type(code) ~= "string" or #code < 50 then
@@ -35,23 +36,19 @@ local function saveCode(code, label)
     oldPrint("=":rep(40))
     oldPrint("🎯 LƯU CODE (" .. label .. "): " .. #code .. " bytes")
     
-    -- Lưu vào _G
-    _G.DECODED = code
-    _G.LAST_CODE = code
+    -- Lưu vào environment thay vì _G
+    env.DECODED = code
+    env.LAST_CODE = code
     
     -- Copy clipboard
     if hasSetclipboard then
-        local ok, err = pcall(setclipboard, code)
-        if ok then
-            oldPrint("  📋 Copied to clipboard")
-        else
-            oldPrint("  ⚠️ Lỗi clipboard: " .. tostring(err))
-        end
+        pcall(setclipboard, code)
+        oldPrint("  📋 Copied to clipboard")
     end
     
     -- Ghi file
     if hasWritefile then
-        local ok, err = pcall(function()
+        pcall(function()
             if hasMakefolder then
                 pcall(makefolder, "decoded")
             end
@@ -59,9 +56,6 @@ local function saveCode(code, label)
             writefile(name, code)
             oldPrint("  💾 Saved: " .. name)
         end)
-        if not ok then
-            oldPrint("  ⚠️ Lỗi ghi file: " .. tostring(err))
-        end
     end
     
     oldPrint("=":rep(40))
@@ -69,17 +63,15 @@ local function saveCode(code, label)
 end
 
 -- ========================================
--- 4. HOOK LOADSTRING (ĐƠN GIẢN)
+-- 4. HOOK LOADSTRING
 -- ========================================
 loadstring = function(code, chunkname)
     oldPrint("🔍 [HOOK] Bắt loadstring: " .. #code .. " bytes")
     
-    -- Lưu code nếu đủ dài
     if code and type(code) == "string" and #code > 100 then
         saveCode(code, "loadstring")
     end
     
-    -- Gọi hàm gốc
     return oldLoadstring(code, chunkname)
 end
 
@@ -123,15 +115,17 @@ end
 oldPrint("\n" .. "=":rep(50))
 oldPrint("📦 KẾT QUẢ")
 
-if _G.DECODED and #_G.DECODED > 100 then
+local decoded = env.DECODED or env.LAST_CODE
+
+if decoded and #decoded > 100 then
     oldPrint("✅ ĐÃ LẤY ĐƯỢC CODE!")
-    oldPrint("  Độ dài: " .. #_G.DECODED .. " bytes")
-    oldPrint("  Preview: " .. string.sub(_G.DECODED, 1, 200) .. "...")
-    oldPrint("\n📌 Code trong _G.DECODED")
+    oldPrint("  Độ dài: " .. #decoded .. " bytes")
+    oldPrint("  Preview: " .. string.sub(decoded, 1, 200) .. "...")
+    oldPrint("\n📌 Code trong: getfenv().DECODED")
     
     if hasWritefile then
         pcall(function()
-            writefile("decoded_FINAL.lua", _G.DECODED)
+            writefile("decoded_FINAL.lua", decoded)
             oldPrint("💾 Đã lưu: decoded_FINAL.lua")
         end)
     end
@@ -144,21 +138,23 @@ oldPrint("=":rep(50))
 -- ========================================
 -- 7. HÀM TIỆN ÍCH
 -- ========================================
-_G.showCode = function()
-    if _G.DECODED then
-        oldPrint(_G.DECODED)
+env.showCode = function()
+    local code = env.DECODED or env.LAST_CODE
+    if code then
+        oldPrint(code)
     else
         oldPrint("❌ Không có code")
     end
 end
 
-_G.saveCode = function()
-    if _G.DECODED and hasWritefile then
-        writefile("decoded_manual.lua", _G.DECODED)
+env.saveCode = function()
+    local code = env.DECODED or env.LAST_CODE
+    if code and hasWritefile then
+        writefile("decoded_manual.lua", code)
         oldPrint("💾 Saved: decoded_manual.lua")
     end
 end
 
 oldPrint("\n📌 Hàm tiện ích:")
-oldPrint("  _G.showCode()  → Xem code")
-oldPrint("  _G.saveCode()  → Lưu code ra file")
+oldPrint("  getfenv().showCode()  → Xem code")
+oldPrint("  getfenv().saveCode()  → Lưu code ra file")
