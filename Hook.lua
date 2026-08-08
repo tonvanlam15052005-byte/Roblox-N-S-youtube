@@ -1,34 +1,51 @@
 -- ==========================================================
--- PHƯƠNG PHÁP MỚI: Dùng debug.getupvalue để lấy code
--- Không hook loadstring → KHÔNG stack overflow
+-- SCRIPT HOOK AN TOÀN - CHỈ DÙNG HÀM CÓ SẴN
 -- ==========================================================
 
 print("=":rep(50))
-print("🔧 DÙNG DEBUG ĐỂ LẤY CODE")
+print("🔧 CÀI HOOK AN TOÀN (KHÔNG DEBUG)")
 print("=":rep(50))
 
 -- ========================================
--- 1. Hàm lưu code (an toàn, không gây stack)
+-- 1. KIỂM TRA HÀM HỖ TRỢ
+-- ========================================
+local hasWritefile = type(writefile) == "function"
+local hasSetclipboard = type(setclipboard) == "function"
+local hasMakefolder = type(makefolder) == "function"
+local hasHttpGet = type(game.HttpGet) == "function" or type(game:HttpGet) == "function"
+
+print("📌 Hỗ trợ:")
+print("  writefile: " .. tostring(hasWritefile))
+print("  setclipboard: " .. tostring(hasSetclipboard))
+print("  makefolder: " .. tostring(hasMakefolder))
+print("  HttpGet: " .. tostring(hasHttpGet))
+
+-- ========================================
+-- 2. HÀM LƯU CODE (AN TOÀN)
 -- ========================================
 local function saveCode(code, label)
-    if not code or type(code) ~= "string" or #code < 100 then
-        return -- Bỏ qua code quá ngắn (có thể không phải code chính)
+    if not code or type(code) ~= "string" or #code < 50 then
+        return
     end
     
+    -- Lưu vào _G
     _G.DECODED = code
     _G.LAST_CODE = code
     
     print("🎯 LƯU CODE (" .. label .. "): " .. #code .. " bytes")
-    print("  Preview: " .. string.sub(code, 1, 100) .. "...")
     
-    if setclipboard then
+    -- Copy clipboard
+    if hasSetclipboard then
         pcall(setclipboard, code)
         print("  📋 Copied to clipboard")
     end
     
-    if writefile then
+    -- Ghi file
+    if hasWritefile then
         pcall(function()
-            if makefolder then pcall(makefolder, "decoded") end
+            if hasMakefolder then
+                pcall(makefolder, "decoded")
+            end
             local name = "decoded/decoded_" .. label .. "_" .. os.time() .. ".lua"
             writefile(name, code)
             print("  💾 Saved: " .. name)
@@ -37,96 +54,79 @@ local function saveCode(code, label)
 end
 
 -- ========================================
--- 2. Hook debug.getinfo để bắt khi script load
+-- 3. HOOK LOADSTRING (ĐƠN GIẢN, AN TOÀN)
 -- ========================================
-if debug and debug.getinfo then
-    local oldGetinfo = debug.getinfo
+local oldLoadstring = loadstring
+
+loadstring = function(code, chunkname)
+    -- Lưu code
+    if code and type(code) == "string" and #code > 100 then
+        saveCode(code, "loadstring")
+    end
     
-    debug.getinfo = function(func, what)
-        local info = oldGetinfo(func, what)
-        
-        -- Kiểm tra nếu là function mới được tạo từ code
-        if info and info.source then
-            local src = info.source
-            -- Nếu source bắt đầu bằng "=" hoặc "@" và dài, có thể là code được load
-            if src and #src > 100 and (string.sub(src, 1, 1) == "=" or string.sub(src, 1, 1) == "@") then
-                -- Lấy code từ source
-                local code = string.sub(src, 2) -- Bỏ ký tự đầu
-                if #code > 100 then
-                    saveCode(code, "debug")
-                end
+    -- Gọi hàm gốc
+    return oldLoadstring(code, chunkname)
+end
+
+print("✅ Hook loadstring đã cài!")
+
+-- ========================================
+-- 4. HOOK LOAD (NẾU CÓ)
+-- ========================================
+if type(load) == "function" then
+    local oldLoad = load
+    load = function(code, chunkname, mode, env)
+        if code and type(code) == "string" and #code > 100 then
+            saveCode(code, "load")
+        end
+        return oldLoad(code, chunkname, mode, env)
+    end
+    print("✅ Hook load đã cài!")
+end
+
+-- ========================================
+-- 5. HOOK GAME:HTTPGET (ĐỂ BẮT SCRIPT TẢI TỪ WEB)
+-- ========================================
+if type(game.HttpGet) == "function" then
+    local oldHttpGet = game.HttpGet
+    game.HttpGet = function(self, url, cache)
+        print("🌐 HttpGet: " .. url)
+        local result = oldHttpGet(self, url, cache)
+        if result and type(result) == "string" and #result > 100 then
+            -- Kiểm tra xem có phải script Lua không
+            if string.find(result, "function") or string.find(result, "loadstring") then
+                saveCode(result, "httpget")
             end
         end
-        
-        return info
+        return result
     end
-    
-    print("✅ Hook debug.getinfo đã cài!")
-else
-    print("❌ debug.getinfo không khả dụng")
+    print("✅ Hook game.HttpGet đã cài!")
 end
 
 -- ========================================
--- 3. Hook debug.getupvalue (bắt code từ closures)
+-- 6. HOOK GAME:HTTPGET (CÁCH 2)
 -- ========================================
-if debug and debug.getupvalue then
-    local oldGetupvalue = debug.getupvalue
-    
-    debug.getupvalue = function(func, index)
-        local name, value = oldGetupvalue(func, index)
-        
-        -- Nếu value là string dài, có thể là code
-        if name and value and type(value) == "string" and #value > 500 then
-            -- Kiểm tra xem có phải code Lua không
-            if string.find(value, "function") or string.find(value, "loadstring") or string.find(value, "return") then
-                saveCode(value, "upvalue")
+if type(game:HttpGet) == "function" then
+    local oldHttpGet = game.HttpGet or game:HttpGet
+    game.HttpGet = function(self, url, cache)
+        print("🌐 HttpGet (method): " .. url)
+        local result = oldHttpGet(self, url, cache)
+        if result and type(result) == "string" and #result > 100 then
+            if string.find(result, "function") or string.find(result, "loadstring") then
+                saveCode(result, "httpget_method")
             end
         end
-        
-        return name, value
+        return result
     end
-    
-    print("✅ Hook debug.getupvalue đã cài!")
+    print("✅ Hook game:HttpGet đã cài!")
 end
-
--- ========================================
--- 4. Ghi đè print để bắt output (có thể chứa code)
--- ========================================
-local oldPrint = print
-print = function(...)
-    local args = {...}
-    for _, arg in ipairs(args) do
-        if type(arg) == "string" and #arg > 500 then
-            -- Có thể đây là code được in ra
-            if string.find(arg, "function") or string.find(arg, "loadstring") then
-                saveCode(arg, "print")
-            end
-        end
-    end
-    return oldPrint(...)
-end
-
-print("✅ Hook print đã cài!")
-
--- ========================================
--- 5. Hook error để bắt stack trace (có thể chứa code)
--- ========================================
-local oldError = error
-error = function(msg, level)
-    if type(msg) == "string" and #msg > 500 then
-        saveCode(msg, "error")
-    end
-    return oldError(msg, level)
-end
-
-print("✅ Hook error đã cài!")
 
 print("=":rep(50))
 print("✅ TẤT CẢ HOOK ĐÃ SẴN SÀNG!")
 print("=":rep(50))
 
 -- ========================================
--- 6. CHẠY SCRIPT V8
+-- 7. CHẠY SCRIPT V8
 -- ========================================
 
 local v8Url = "https://raw.githubusercontent.com/Dan41/Roblox-Scripts/refs/heads/main/Youtube%20Music%20Player/YoutubeMusicPlayer.lua"
@@ -134,40 +134,36 @@ local v8Url = "https://raw.githubusercontent.com/Dan41/Roblox-Scripts/refs/heads
 print("🔄 Đang tải script V8...")
 
 local success, response = pcall(function()
-    return game:HttpGet(v8Url)
+    if type(game:HttpGet) == "function" then
+        return game:HttpGet(v8Url)
+    elseif type(game.HttpGet) == "function" then
+        return game.HttpGet(game, v8Url)
+    else
+        error("Không có hàm HttpGet")
+    end
 end)
 
 if success and response then
     print("✅ Tải thành công (" .. #response .. " bytes)")
     
-    -- CHẠY TRONG XPCALL ĐỂ BẮT LỖI
     print("🔄 Đang chạy script V8...")
-    local ok, err = xpcall(function()
-        local chunk = loadstring(response)
-        if chunk then
-            chunk()
+    local chunk, err = loadstring(response)
+    if chunk then
+        local ok, err2 = pcall(chunk)
+        if ok then
+            print("✅ Script V8 đã chạy xong!")
         else
-            error("Lỗi loadstring")
+            print("❌ Lỗi khi chạy: " .. tostring(err2))
         end
-    end, function(errMsg)
-        print("❌ LỖI: " .. tostring(errMsg))
-        -- Lưu lỗi (có thể chứa code)
-        if type(errMsg) == "string" and #errMsg > 100 then
-            saveCode(errMsg, "error")
-        end
-    end)
-    
-    if ok then
-        print("✅ Script V8 đã chạy xong!")
     else
-        print("❌ Script V8 gặp lỗi!")
+        print("❌ Lỗi loadstring: " .. tostring(err))
     end
 else
-    print("❌ Không thể tải script: " .. tostring(response))
+    print("❌ Lỗi tải script: " .. tostring(response))
 end
 
 -- ========================================
--- 7. KẾT QUẢ
+-- 8. KẾT QUẢ
 -- ========================================
 
 print("\n" .. "=":rep(50))
@@ -179,8 +175,7 @@ if _G.DECODED and #_G.DECODED > 100 then
     print("  Preview: " .. string.sub(_G.DECODED, 1, 200) .. "...")
     print("\n📌 Code trong _G.DECODED")
     
-    -- Lưu file cuối cùng
-    if writefile then
+    if hasWritefile then
         pcall(function()
             writefile("decoded_FINAL.lua", _G.DECODED)
             print("💾 Đã lưu: decoded_FINAL.lua")
@@ -188,12 +183,13 @@ if _G.DECODED and #_G.DECODED > 100 then
     end
 else
     print("❌ CHƯA LẤY ĐƯỢC CODE!")
-    print("📌 Có thể script V8 không chạy hoặc không giải mã thành công")
+    print("📌 Có thể script V8 không dùng loadstring ở cấp global")
+    print("📌 Hoặc nó đã tự giải mã và chạy mà không qua loadstring")
 end
 print("=":rep(50))
 
 -- ========================================
--- 8. HÀM TIỆN ÍCH
+-- 9. HÀM TIỆN ÍCH
 -- ========================================
 _G.showCode = function()
     if _G.DECODED then
@@ -204,7 +200,7 @@ _G.showCode = function()
 end
 
 _G.saveCode = function()
-    if _G.DECODED and writefile then
+    if _G.DECODED and hasWritefile then
         writefile("decoded_manual.lua", _G.DECODED)
         print("💾 Saved: decoded_manual.lua")
     end
