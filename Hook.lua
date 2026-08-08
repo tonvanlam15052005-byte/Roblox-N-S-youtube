@@ -1,39 +1,39 @@
 -- ==========================================================
--- HOOK METATABLE - Bắt mọi truy cập loadstring
+-- HOOK KHÔNG CAN THIỆP - Chỉ lưu code, không ảnh hưởng
 -- ==========================================================
 
-print("🔧 Cài hook metatable...")
+print("🔧 Cài hook không can thiệp...")
 
--- Lưu bảng _G
-local realG = _G
+local originalLoadstring = loadstring
+local hookActive = true
 
--- Tạo metatable cho _G
-setmetatable(_G, {
-    __index = function(table, key)
-        if key == "loadstring" then
-            return function(code, chunk)
-                print("🎯 BẮT LOADSTRING QUA METATABLE!")
-                _G.DECODED = code
-                if setclipboard then pcall(setclipboard, code) end
-                if writefile then 
-                    pcall(function() 
-                        writefile("decoded_meta_"..os.time()..".lua", code) 
-                    end) 
-                end
-                return realG.loadstring(code, chunk)
-            end
+loadstring = function(code, chunkname)
+    -- Chỉ bắt khi hook đang hoạt động
+    if hookActive and code and type(code) == "string" then
+        -- Lưu code
+        _G.DECODED = code
+        
+        -- Ghi file
+        if writefile then
+            pcall(function()
+                writefile("decoded_" .. os.time() .. ".lua", code)
+            end)
         end
-        return realG[key]
-    end,
-    __newindex = function(table, key, value)
-        if key == "loadstring" then
-            print("⚠️ Có script đang ghi đè loadstring!")
-            -- Vẫn cho phép ghi đè nhưng lưu lại
-            realG[key] = value
-        else
-            realG[key] = value
-        end
+        
+        -- Tắt hook tạm thời để tránh đệ quy
+        hookActive = false
+        
+        -- In thông tin
+        print("🎯 BẮT LOADSTRING: " .. #code .. " bytes")
     end
-})
+    
+    -- Gọi loadstring gốc
+    local result = originalLoadstring(code, chunkname)
+    
+    -- Bật lại hook
+    hookActive = true
+    
+    return result
+end
 
-print("✅ Hook metatable đã cài!")
+print("✅ Hook không can thiệp đã sẵn sàng!")
