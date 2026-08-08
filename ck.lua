@@ -1,12 +1,11 @@
--- Script kiểm tra HttpService
-local httpService = game:GetService("HttpService")
-local success, result = pcall(function()
-    return httpService:GetAsync("https://httpbin.org/ip")
-end)
+-- Test hook
+local testCode = "print('Test hook!')"
+loadstring(testCode)()
 
-if success then
-    print("✅ HttpService ĐÃ BẬT! IP của bạn là: " .. result)
+-- Kiểm tra
+if _G.DECODED == testCode then
+    print("✅ Hook hoạt động bình thường!")
 else
-    print("❌ HttpService ĐANG TẮT. Lỗi: " .. tostring(result))
-    print("👉 Đây là nguyên nhân script không tải được.")
+    print("❌ Hook KHÔNG hoạt động!")
+    print("  _G.DECODED: " .. tostring(_G.DECODED))
 end
