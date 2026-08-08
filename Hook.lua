@@ -1,34 +1,39 @@
 -- ==========================================================
--- HOOK NHIỀU HÀM (load, loadstring, loadfile)
+-- HOOK METATABLE - Bắt mọi truy cập loadstring
 -- ==========================================================
 
-print("🔧 Cài hook đa năng...")
+print("🔧 Cài hook metatable...")
 
--- Hook loadstring
-local oldLoadstring = loadstring
-loadstring = function(code, chunk)
-    _G.DECODED = code
-    if setclipboard then pcall(setclipboard, code) end
-    if writefile then pcall(function() writefile("decoded_"..os.time()..".lua", code) end) end
-    return oldLoadstring(code, chunk)
-end
+-- Lưu bảng _G
+local realG = _G
 
--- Hook load
-local oldLoad = load
-load = function(code, chunk, mode, env)
-    _G.DECODED = code
-    if setclipboard then pcall(setclipboard, code) end
-    if writefile then pcall(function() writefile("decoded_load_"..os.time()..".lua", code) end) end
-    return oldLoad(code, chunk, mode, env)
-end
-
--- Hook loadfile (nếu có)
-if loadfile then
-    local oldLoadfile = loadfile
-    loadfile = function(name, mode, env)
-        print("📁 loadfile: " .. name)
-        return oldLoadfile(name, mode, env)
+-- Tạo metatable cho _G
+setmetatable(_G, {
+    __index = function(table, key)
+        if key == "loadstring" then
+            return function(code, chunk)
+                print("🎯 BẮT LOADSTRING QUA METATABLE!")
+                _G.DECODED = code
+                if setclipboard then pcall(setclipboard, code) end
+                if writefile then 
+                    pcall(function() 
+                        writefile("decoded_meta_"..os.time()..".lua", code) 
+                    end) 
+                end
+                return realG.loadstring(code, chunk)
+            end
+        end
+        return realG[key]
+    end,
+    __newindex = function(table, key, value)
+        if key == "loadstring" then
+            print("⚠️ Có script đang ghi đè loadstring!")
+            -- Vẫn cho phép ghi đè nhưng lưu lại
+            realG[key] = value
+        else
+            realG[key] = value
+        end
     end
-end
+})
 
-print("✅ Hook đa năng đã sẵn sàng!")
+print("✅ Hook metatable đã cài!")
