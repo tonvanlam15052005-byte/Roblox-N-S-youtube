@@ -1,17 +1,24 @@
 -- ==========================================================
--- CÁCH DÙNG KETAMINE ĐỂ BẮT SCRIPT V8
+-- KIỂM TRA MÔI TRƯỜNG (CHỈ DÙNG PRINT)
 -- ==========================================================
 
-print("🔧 Đang khởi tạo Logger...")
+print("=== KIỂM TRA MÔI TRƯỜNG ===")
 
--- Giả sử bạn có script Ketamine hoặc Octo~Spy
--- Bạn có thể load nó từ web hoặc paste trực tiếp
-loadstring(game:HttpGet("https://raw.githubusercontent.com/SomeDeveloper/Ketamine/main/loader.lua"))()
+-- Kiểm tra các hàm
+local tests = {
+    "loadstring", "load", "print", "pcall", "xpcall",
+    "getfenv", "setfenv", "debug"
+}
 
--- Đợi logger khởi tạo xong
-wait(1)
+for _, name in ipairs(tests) do
+    local status = _G[name] ~= nil
+    print(name .. ": " .. tostring(status))
+end
 
-print("🔄 Đang chạy script V8...")
+-- Kiểm tra debug
+if debug then
+    print("debug.getinfo: " .. tostring(debug.getinfo ~= nil))
+    print("debug.getregistry: " .. tostring(debug.getregistry ~= nil))
+end
 
--- Sau đó chạy script V8
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Dan41/Roblox-Scripts/refs/heads/main/Youtube%20Music%20Player/YoutubeMusicPlayer.lua"))()
+print("=== KẾT THÚC ===")
