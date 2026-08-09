@@ -1,13 +1,12 @@
 --[[
-    YouTube Player Pro - Mobile Fixed
-    Sửa lỗi touch, UI lên khi bấm nút
+    YouTube Player Pro - Mobile Final
+    Fix UI nhỏ, fix search
 ]]
 
 local player = game.Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 
 -- ===== CONFIG =====
 local Request = request or (http and http.request) or (syn and syn.request)
@@ -25,8 +24,6 @@ local screenSize = player:GetMouse().ViewSizeX and Vector2.new(
     player:GetMouse().ViewSizeY
 ) or Vector2.new(800, 600)
 
-local isTablet = screenSize.X > 600
-
 -- ===== TẠO GUI =====
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player.PlayerGui
@@ -41,21 +38,26 @@ local Colors = {
     Primary = Color3.fromRGB(255, 0, 0),
     Text = Color3.fromRGB(255, 255, 255),
     TextDim = Color3.fromRGB(160, 160, 170),
-    TextDark = Color3.fromRGB(100, 100, 110),
 }
 
--- ===== NÚT MỞ MENU =====
-local FloatBtn = Instance.new("ImageButton")
+-- ===== NÚT MỞ MENU (TO HƠN) =====
+local FloatBtn = Instance.new("TextButton")
 FloatBtn.Parent = ScreenGui
-FloatBtn.Size = UDim2.new(0, 65, 0, 65)
-FloatBtn.Position = UDim2.new(0.88, -32, 0.85, 0)
+FloatBtn.Size = UDim2.new(0, 70, 0, 70)
+FloatBtn.Position = UDim2.new(0.85, -35, 0.82, 0)
 FloatBtn.BackgroundColor3 = Colors.Primary
 FloatBtn.BorderSizePixel = 0
-FloatBtn.Image = "rbxassetid://6026663719"
-FloatBtn.ImageColor3 = Color3.fromRGB(255, 255, 255)
-FloatBtn.ScaleType = Enum.ScaleType.Fit
+FloatBtn.Text = "▶"
+FloatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FloatBtn.TextSize = 30
+FloatBtn.Font = Enum.Font.GothamBold
 FloatBtn.ZIndex = 999
 
+local FloatCorner = Instance.new("UICorner")
+FloatCorner.Parent = FloatBtn
+FloatCorner.CornerRadius = UDim.new(1, 0)
+
+-- Shadow
 local FloatShadow = Instance.new("ImageLabel")
 FloatShadow.Parent = FloatBtn
 FloatShadow.Size = UDim2.new(1.3, 0, 1.3, 0)
@@ -67,24 +69,9 @@ FloatShadow.ScaleType = Enum.ScaleType.Slice
 FloatShadow.SliceCenter = Rect.new(10, 10, 10, 10)
 FloatShadow.ZIndex = 0
 
-local FloatCorner = Instance.new("UICorner")
-FloatCorner.Parent = FloatBtn
-FloatCorner.CornerRadius = UDim.new(1, 0)
-
-local PlayBadge = Instance.new("TextLabel")
-PlayBadge.Parent = FloatBtn
-PlayBadge.Size = UDim2.new(0.5, 0, 0.5, 0)
-PlayBadge.Position = UDim2.new(0.25, 0, 0.25, 0)
-PlayBadge.BackgroundTransparency = 1
-PlayBadge.Text = "▶"
-PlayBadge.TextColor3 = Color3.fromRGB(255, 255, 255)
-PlayBadge.TextSize = 20
-PlayBadge.Font = Enum.Font.GothamBold
-PlayBadge.ZIndex = 10
-
--- ===== MAIN WINDOW =====
-local winWidth = math.min(420, screenSize.X - 20)
-local winHeight = math.min(580, screenSize.Y - 40)
+-- ===== MAIN WINDOW (TO HƠN) =====
+local winWidth = math.min(400, screenSize.X - 20)
+local winHeight = math.min(550, screenSize.Y - 60)
 
 local MainWindow = Instance.new("Frame")
 MainWindow.Parent = ScreenGui
@@ -99,17 +86,6 @@ MainWindow.ClipsDescendants = true
 local WinCorner = Instance.new("UICorner")
 WinCorner.Parent = MainWindow
 WinCorner.CornerRadius = UDim.new(0, 16)
-
-local WinShadow = Instance.new("ImageLabel")
-WinShadow.Parent = MainWindow
-WinShadow.Size = UDim2.new(1.1, 0, 1.1, 0)
-WinShadow.Position = UDim2.new(-0.05, 0, -0.05, 0)
-WinShadow.BackgroundTransparency = 1
-WinShadow.Image = "rbxassetid://131599993"
-WinShadow.ImageTransparency = 0.8
-WinShadow.ScaleType = Enum.ScaleType.Slice
-WinShadow.SliceCenter = Rect.new(10, 10, 10, 10)
-WinShadow.ZIndex = -1
 
 -- ===== DRAG SYSTEM =====
 local isDragging = false
@@ -148,14 +124,10 @@ end)
 -- ===== TITLE BAR =====
 local TitleBar = Instance.new("Frame")
 TitleBar.Parent = MainWindow
-TitleBar.Size = UDim2.new(1, 0, 0, 50)
+TitleBar.Size = UDim2.new(1, 0, 0, 45)
 TitleBar.BackgroundColor3 = Colors.Surface
 TitleBar.BorderSizePixel = 0
 SetupDrag(TitleBar)
-
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.Parent = TitleBar
-TitleCorner.CornerRadius = UDim.new(0, 16)
 
 local TitleText = Instance.new("TextLabel")
 TitleText.Parent = TitleBar
@@ -164,44 +136,42 @@ TitleText.Position = UDim2.new(0, 15, 0, 0)
 TitleText.BackgroundTransparency = 1
 TitleText.Text = "🎬 YouTube Player"
 TitleText.TextColor3 = Colors.Text
-TitleText.TextSize = 17
+TitleText.TextSize = 16
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Parent = TitleBar
-CloseBtn.Size = UDim2.new(0, 50, 1, 0)
-CloseBtn.Position = UDim2.new(1, -50, 0, 0)
+CloseBtn.Size = UDim2.new(0, 45, 1, 0)
+CloseBtn.Position = UDim2.new(1, -45, 0, 0)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Text = "✕"
 CloseBtn.TextColor3 = Colors.TextDim
 CloseBtn.TextSize = 20
 CloseBtn.Font = Enum.Font.GothamBold
-
--- Dùng MouseButton1Click cho Close
 CloseBtn.MouseButton1Click:Connect(function()
     MainWindow.Visible = false
-    PlayBadge.Text = "▶"
+    FloatBtn.Text = "▶"
 end)
 
 -- ===== SEARCH BAR =====
 local SearchFrame = Instance.new("Frame")
 SearchFrame.Parent = MainWindow
-SearchFrame.Size = UDim2.new(1, 0, 0, 55)
-SearchFrame.Position = UDim2.new(0, 0, 0, 50)
+SearchFrame.Size = UDim2.new(1, 0, 0, 60)
+SearchFrame.Position = UDim2.new(0, 0, 0, 45)
 SearchFrame.BackgroundColor3 = Colors.Surface2
 SearchFrame.BorderSizePixel = 0
 
 local SearchBox = Instance.new("TextBox")
 SearchBox.Parent = SearchFrame
-SearchBox.Size = UDim2.new(0.6, -15, 0, 38)
-SearchBox.Position = UDim2.new(0, 12, 0, 8)
+SearchBox.Size = UDim2.new(0.55, -15, 0, 40)
+SearchBox.Position = UDim2.new(0, 12, 0, 10)
 SearchBox.BackgroundColor3 = Colors.BG
 SearchBox.BorderSizePixel = 0
 SearchBox.PlaceholderText = "🔍 Tìm video..."
 SearchBox.PlaceholderColor3 = Colors.TextDim
 SearchBox.TextColor3 = Colors.Text
-SearchBox.TextSize = 15
+SearchBox.TextSize = 16
 SearchBox.Font = Enum.Font.Gotham
 SearchBox.ClearTextOnFocus = false
 
@@ -211,13 +181,13 @@ SearchCorner.CornerRadius = UDim.new(0, 8)
 
 local SearchBtn = Instance.new("TextButton")
 SearchBtn.Parent = SearchFrame
-SearchBtn.Size = UDim2.new(0, 70, 0, 38)
-SearchBtn.Position = UDim2.new(0.67, 0, 0, 8)
+SearchBtn.Size = UDim2.new(0, 75, 0, 40)
+SearchBtn.Position = UDim2.new(0.62, 5, 0, 10)
 SearchBtn.BackgroundColor3 = Colors.Primary
 SearchBtn.BorderSizePixel = 0
 SearchBtn.Text = "Tìm"
 SearchBtn.TextColor3 = Colors.Text
-SearchBtn.TextSize = 15
+SearchBtn.TextSize = 16
 SearchBtn.Font = Enum.Font.GothamBold
 
 local SearchCorner2 = Instance.new("UICorner")
@@ -227,8 +197,8 @@ SearchCorner2.CornerRadius = UDim.new(0, 8)
 -- ===== MODE SWITCH =====
 local ModeFrame = Instance.new("Frame")
 ModeFrame.Parent = SearchFrame
-ModeFrame.Size = UDim2.new(0, 90, 0, 32)
-ModeFrame.Position = UDim2.new(0.8, 0, 0, 11)
+ModeFrame.Size = UDim2.new(0, 85, 0, 34)
+ModeFrame.Position = UDim2.new(0.78, 0, 0, 13)
 ModeFrame.BackgroundColor3 = Colors.BG
 ModeFrame.BorderSizePixel = 0
 
@@ -243,12 +213,8 @@ ModeVid.BackgroundColor3 = Colors.Primary
 ModeVid.BorderSizePixel = 0
 ModeVid.Text = "🎥"
 ModeVid.TextColor3 = Colors.Text
-ModeVid.TextSize = 14
+ModeVid.TextSize = 15
 ModeVid.Font = Enum.Font.GothamBold
-
-local ModeVidCorner = Instance.new("UICorner")
-ModeVidCorner.Parent = ModeVid
-ModeVidCorner.CornerRadius = UDim.new(0, 6)
 
 local ModeAud = Instance.new("TextButton")
 ModeAud.Parent = ModeFrame
@@ -258,13 +224,13 @@ ModeAud.BackgroundTransparency = 1
 ModeAud.BorderSizePixel = 0
 ModeAud.Text = "🎵"
 ModeAud.TextColor3 = Colors.TextDim
-ModeAud.TextSize = 14
+ModeAud.TextSize = 15
 ModeAud.Font = Enum.Font.GothamBold
 
 local currentMode = "video"
 
 -- ===== PLAYER =====
-local playerHeight = isTablet and 250 or 200
+local playerHeight = math.min(200, winHeight * 0.35)
 local PlayerFrame = Instance.new("Frame")
 PlayerFrame.Parent = MainWindow
 PlayerFrame.Size = UDim2.new(1, 0, 0, playerHeight)
@@ -291,7 +257,7 @@ AudioIcon.Position = UDim2.new(0, 0, 0.2, 0)
 AudioIcon.BackgroundTransparency = 1
 AudioIcon.Text = "🎵"
 AudioIcon.TextColor3 = Colors.Primary
-AudioIcon.TextSize = 70
+AudioIcon.TextSize = 60
 AudioIcon.Font = Enum.Font.GothamBold
 
 local AudioStatus = Instance.new("TextLabel")
@@ -334,10 +300,6 @@ TimelineLine.Size = UDim2.new(0, 0, 1, 0)
 TimelineLine.BackgroundColor3 = Colors.Primary
 TimelineLine.BorderSizePixel = 0
 
-local TimelineCorner2 = Instance.new("UICorner")
-TimelineCorner2.Parent = TimelineLine
-TimelineCorner2.CornerRadius = UDim.new(0, 4)
-
 -- ===== CONTROLS =====
 local Controls = Instance.new("Frame")
 Controls.Parent = MainWindow
@@ -347,7 +309,7 @@ Controls.BackgroundColor3 = Colors.Surface
 Controls.BorderSizePixel = 0
 
 local function MakeBtn(parent, pos, text, size)
-    size = size or 40
+    size = size or 42
     local btn = Instance.new("TextButton")
     btn.Parent = parent
     btn.Size = UDim2.new(0, size, 0, size)
@@ -355,18 +317,18 @@ local function MakeBtn(parent, pos, text, size)
     btn.BackgroundTransparency = 1
     btn.Text = text
     btn.TextColor3 = Colors.Text
-    btn.TextSize = isTablet and 26 or 22
+    btn.TextSize = 24
     btn.Font = Enum.Font.GothamBold
     return btn
 end
 
-local PlayBtn = MakeBtn(Controls, UDim2.new(0.5, -55, 0, 5), "▶", 50)
-local PrevBtn = MakeBtn(Controls, UDim2.new(0.5, -110, 0, 5), "⏮", 38)
-local NextBtn = MakeBtn(Controls, UDim2.new(0.5, 0, 0, 5), "⏭", 38)
-local LoopBtn = MakeBtn(Controls, UDim2.new(0.5, 55, 0, 5), "🔁", 38)
+local PlayBtn = MakeBtn(Controls, UDim2.new(0.5, -55, 0, 3), "▶", 50)
+local PrevBtn = MakeBtn(Controls, UDim2.new(0.5, -110, 0, 3), "⏮", 38)
+local NextBtn = MakeBtn(Controls, UDim2.new(0.5, 0, 0, 3), "⏭", 38)
+local LoopBtn = MakeBtn(Controls, UDim2.new(0.5, 55, 0, 3), "🔁", 38)
 
 -- ===== RESULTS =====
-local resultsHeight = winHeight - (105 + playerHeight + 55 + 55 + 28)
+local resultsHeight = winHeight - (105 + playerHeight + 55 + 55 + 28 + 10)
 local ResultsFrame = Instance.new("ScrollingFrame")
 ResultsFrame.Parent = MainWindow
 ResultsFrame.Size = UDim2.new(1, 0, 0, resultsHeight)
@@ -379,12 +341,22 @@ ResultsFrame.ScrollBarImageColor3 = Colors.Primary
 
 -- ===== SEARCH FUNCTION =====
 local function SearchYouTube(query)
+    print("🔍 Đang tìm:", query)
+    local encoded = HttpService:UrlEncode(query)
+    local url = Domain .. "yt/search?q=" .. encoded .. "&limit=10"
+    print("📡 URL:", url)
+    
     local response = Request({
         Method = "GET",
-        Url = Domain .. "yt/search?q=" .. HttpService:UrlEncode(query) .. "&limit=10"
+        Url = url
     })
+    
+    print("📥 Response:", response and response.StatusCode or "nil")
+    
     if response and response.StatusCode == 200 then
-        return HttpService:JSONDecode(response.Body)
+        local data = HttpService:JSONDecode(response.Body)
+        print("✅ Tìm thấy:", #data, "kết quả")
+        return data
     end
     return nil
 end
@@ -474,12 +446,10 @@ local function DisplayResults(results)
         duration.Font = Enum.Font.Gotham
         duration.TextXAlignment = Enum.TextXAlignment.Right
         
-        -- Dùng MouseButton1Click (hoạt động trên cả touch)
         btn.MouseButton1Click:Connect(function()
             PlayVideo(video.videoId, video)
         end)
         
-        -- Hover effect
         item.MouseEnter:Connect(function()
             item.BackgroundColor3 = Colors.Surface2
         end)
@@ -552,12 +522,14 @@ local function PlayVideo(videoId, videoData)
     
     PlayBtn.Text = "⏸"
     isPlaying = true
-    PlayBadge.Text = "⏸"
+    FloatBtn.Text = "⏸"
 end
 
 -- ===== SEARCH =====
 SearchBtn.MouseButton1Click:Connect(function()
     local query = SearchBox.Text
+    print("🔎 Search clicked:", query)
+    
     if #query < 2 then
         NowPlaying.Text = "⚠️ Nhập ít nhất 2 ký tự"
         NowPlaying.TextColor3 = Color3.fromRGB(255, 200, 0)
@@ -568,7 +540,7 @@ SearchBtn.MouseButton1Click:Connect(function()
     NowPlaying.TextColor3 = Colors.TextDim
     
     local results = SearchYouTube(query)
-    if results then
+    if results and #results > 0 then
         DisplayResults(results)
         NowPlaying.Text = "✅ Tìm thấy " .. #results .. " kết quả"
         NowPlaying.TextColor3 = Color3.fromRGB(0, 200, 100)
@@ -576,8 +548,14 @@ SearchBtn.MouseButton1Click:Connect(function()
         NowPlaying.Text = "Chọn video để phát"
         NowPlaying.TextColor3 = Colors.TextDim
     else
-        NowPlaying.Text = "❌ Không tìm thấy"
+        NowPlaying.Text = "❌ Không tìm thấy hoặc API lỗi"
         NowPlaying.TextColor3 = Color3.fromRGB(255, 50, 50)
+        -- Hiển thị demo nếu không tìm thấy
+        DisplayResults({
+            {videoId = "dQw4w9WgXcQ", title = "Rick Astley - Never Gonna Give You Up", channel = "Rick Astley", duration = "3:33"},
+            {videoId = "JGwWNGJdvx8", title = "Despacito - Luis Fonsi ft. Daddy Yankee", channel = "Luis Fonsi", duration = "4:41"},
+            {videoId = "fJ9rUzIMcZQ", title = "Queen - Bohemian Rhapsody", channel = "Queen Official", duration = "5:55"},
+        })
     end
 end)
 
@@ -627,7 +605,7 @@ PlayBtn.MouseButton1Click:Connect(function()
         end
         PlayBtn.Text = "▶"
         isPlaying = false
-        PlayBadge.Text = "▶"
+        FloatBtn.Text = "▶"
     else
         if currentMode == "video" then
             VideoPlayer:Play()
@@ -636,7 +614,7 @@ PlayBtn.MouseButton1Click:Connect(function()
         end
         PlayBtn.Text = "⏸"
         isPlaying = true
-        PlayBadge.Text = "⏸"
+        FloatBtn.Text = "⏸"
     end
 end)
 
@@ -677,14 +655,14 @@ Timeline.InputBegan:Connect(function(input)
     end
 end)
 
--- ===== FLOATING BUTTON (DÙNG MouseButton1Click) =====
+-- ===== FLOATING BUTTON =====
 local menuOpen = false
 
 FloatBtn.MouseButton1Click:Connect(function()
     menuOpen = not menuOpen
     MainWindow.Visible = menuOpen
     if not menuOpen then
-        PlayBadge.Text = "▶"
+        FloatBtn.Text = "▶"
     end
 end)
 
@@ -724,5 +702,7 @@ DisplayResults({
     {videoId = "fJ9rUzIMcZQ", title = "Queen - Bohemian Rhapsody", channel = "Queen Official", duration = "5:55"},
 })
 
-print("✅ YouTube Player Pro - Mobile Fixed!")
-print("📱 Chạm vào nút đỏ để mở menu")
+print("✅ YouTube Player Pro - Mobile Final!")
+print("📱 Chạm nút đỏ để mở menu")
+print("🔍 Nhập từ khóa và bấm Tìm để search")
+print("📺 Chọn video để phát")
