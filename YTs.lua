@@ -1,6 +1,5 @@
 --[[
-    YouTube Player Pro - Mobile Final
-    Fix UI nhỏ, fix search
+    YouTube Player Pro - Mobile No Corner
 ]]
 
 local player = game.Players.LocalPlayer
@@ -28,7 +27,6 @@ local screenSize = player:GetMouse().ViewSizeX and Vector2.new(
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = player.PlayerGui
 ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 -- ===== STYLE =====
 local Colors = {
@@ -40,7 +38,7 @@ local Colors = {
     TextDim = Color3.fromRGB(160, 160, 170),
 }
 
--- ===== NÚT MỞ MENU (TO HƠN) =====
+-- ===== NÚT MỞ MENU =====
 local FloatBtn = Instance.new("TextButton")
 FloatBtn.Parent = ScreenGui
 FloatBtn.Size = UDim2.new(0, 70, 0, 70)
@@ -53,23 +51,7 @@ FloatBtn.TextSize = 30
 FloatBtn.Font = Enum.Font.GothamBold
 FloatBtn.ZIndex = 999
 
-local FloatCorner = Instance.new("UICorner")
-FloatCorner.Parent = FloatBtn
-FloatCorner.CornerRadius = UDim.new(1, 0)
-
--- Shadow
-local FloatShadow = Instance.new("ImageLabel")
-FloatShadow.Parent = FloatBtn
-FloatShadow.Size = UDim2.new(1.3, 0, 1.3, 0)
-FloatShadow.Position = UDim2.new(-0.15, 0, -0.15, 0)
-FloatShadow.BackgroundTransparency = 1
-FloatShadow.Image = "rbxassetid://131599993"
-FloatShadow.ImageTransparency = 0.7
-FloatShadow.ScaleType = Enum.ScaleType.Slice
-FloatShadow.SliceCenter = Rect.new(10, 10, 10, 10)
-FloatShadow.ZIndex = 0
-
--- ===== MAIN WINDOW (TO HƠN) =====
+-- ===== MAIN WINDOW =====
 local winWidth = math.min(400, screenSize.X - 20)
 local winHeight = math.min(550, screenSize.Y - 60)
 
@@ -81,11 +63,6 @@ MainWindow.BackgroundColor3 = Colors.BG
 MainWindow.BorderSizePixel = 0
 MainWindow.Visible = false
 MainWindow.ZIndex = 100
-MainWindow.ClipsDescendants = true
-
-local WinCorner = Instance.new("UICorner")
-WinCorner.Parent = MainWindow
-WinCorner.CornerRadius = UDim.new(0, 16)
 
 -- ===== DRAG SYSTEM =====
 local isDragging = false
@@ -175,10 +152,6 @@ SearchBox.TextSize = 16
 SearchBox.Font = Enum.Font.Gotham
 SearchBox.ClearTextOnFocus = false
 
-local SearchCorner = Instance.new("UICorner")
-SearchCorner.Parent = SearchBox
-SearchCorner.CornerRadius = UDim.new(0, 8)
-
 local SearchBtn = Instance.new("TextButton")
 SearchBtn.Parent = SearchFrame
 SearchBtn.Size = UDim2.new(0, 75, 0, 40)
@@ -190,10 +163,6 @@ SearchBtn.TextColor3 = Colors.Text
 SearchBtn.TextSize = 16
 SearchBtn.Font = Enum.Font.GothamBold
 
-local SearchCorner2 = Instance.new("UICorner")
-SearchCorner2.Parent = SearchBtn
-SearchCorner2.CornerRadius = UDim.new(0, 8)
-
 -- ===== MODE SWITCH =====
 local ModeFrame = Instance.new("Frame")
 ModeFrame.Parent = SearchFrame
@@ -201,10 +170,6 @@ ModeFrame.Size = UDim2.new(0, 85, 0, 34)
 ModeFrame.Position = UDim2.new(0.78, 0, 0, 13)
 ModeFrame.BackgroundColor3 = Colors.BG
 ModeFrame.BorderSizePixel = 0
-
-local ModeCorner = Instance.new("UICorner")
-ModeCorner.Parent = ModeFrame
-ModeCorner.CornerRadius = UDim.new(0, 6)
 
 local ModeVid = Instance.new("TextButton")
 ModeVid.Parent = ModeFrame
@@ -237,7 +202,6 @@ PlayerFrame.Size = UDim2.new(1, 0, 0, playerHeight)
 PlayerFrame.Position = UDim2.new(0, 0, 0, 105)
 PlayerFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 PlayerFrame.BorderSizePixel = 0
-PlayerFrame.ClipsDescendants = true
 
 local VideoPlayer = Instance.new("VideoFrame")
 VideoPlayer.Parent = PlayerFrame
@@ -290,10 +254,6 @@ Timeline.Position = UDim2.new(0.05, 0, 0, 105 + playerHeight + 33)
 Timeline.BackgroundColor3 = Colors.Surface2
 Timeline.BorderSizePixel = 0
 
-local TimelineCorner = Instance.new("UICorner")
-TimelineCorner.Parent = Timeline
-TimelineCorner.CornerRadius = UDim.new(0, 4)
-
 local TimelineLine = Instance.new("Frame")
 TimelineLine.Parent = Timeline
 TimelineLine.Size = UDim2.new(0, 0, 1, 0)
@@ -341,22 +301,16 @@ ResultsFrame.ScrollBarImageColor3 = Colors.Primary
 
 -- ===== SEARCH FUNCTION =====
 local function SearchYouTube(query)
-    print("🔍 Đang tìm:", query)
     local encoded = HttpService:UrlEncode(query)
     local url = Domain .. "yt/search?q=" .. encoded .. "&limit=10"
-    print("📡 URL:", url)
     
     local response = Request({
         Method = "GET",
         Url = url
     })
     
-    print("📥 Response:", response and response.StatusCode or "nil")
-    
     if response and response.StatusCode == 200 then
-        local data = HttpService:JSONDecode(response.Body)
-        print("✅ Tìm thấy:", #data, "kết quả")
-        return data
+        return HttpService:JSONDecode(response.Body)
     end
     return nil
 end
@@ -401,10 +355,6 @@ local function DisplayResults(results)
         item.BackgroundColor3 = Colors.Surface
         item.BorderSizePixel = 0
         
-        local itemCorner = Instance.new("UICorner")
-        itemCorner.Parent = item
-        itemCorner.CornerRadius = UDim.new(0, 8)
-        
         local btn = Instance.new("TextButton")
         btn.Parent = item
         btn.Size = UDim2.new(1, 0, 1, 0)
@@ -448,13 +398,6 @@ local function DisplayResults(results)
         
         btn.MouseButton1Click:Connect(function()
             PlayVideo(video.videoId, video)
-        end)
-        
-        item.MouseEnter:Connect(function()
-            item.BackgroundColor3 = Colors.Surface2
-        end)
-        item.MouseLeave:Connect(function()
-            item.BackgroundColor3 = Colors.Surface
         end)
         
         y = y + 65
@@ -528,8 +471,6 @@ end
 -- ===== SEARCH =====
 SearchBtn.MouseButton1Click:Connect(function()
     local query = SearchBox.Text
-    print("🔎 Search clicked:", query)
-    
     if #query < 2 then
         NowPlaying.Text = "⚠️ Nhập ít nhất 2 ký tự"
         NowPlaying.TextColor3 = Color3.fromRGB(255, 200, 0)
@@ -548,9 +489,8 @@ SearchBtn.MouseButton1Click:Connect(function()
         NowPlaying.Text = "Chọn video để phát"
         NowPlaying.TextColor3 = Colors.TextDim
     else
-        NowPlaying.Text = "❌ Không tìm thấy hoặc API lỗi"
+        NowPlaying.Text = "❌ Không tìm thấy"
         NowPlaying.TextColor3 = Color3.fromRGB(255, 50, 50)
-        -- Hiển thị demo nếu không tìm thấy
         DisplayResults({
             {videoId = "dQw4w9WgXcQ", title = "Rick Astley - Never Gonna Give You Up", channel = "Rick Astley", duration = "3:33"},
             {videoId = "JGwWNGJdvx8", title = "Despacito - Luis Fonsi ft. Daddy Yankee", channel = "Luis Fonsi", duration = "4:41"},
@@ -702,7 +642,5 @@ DisplayResults({
     {videoId = "fJ9rUzIMcZQ", title = "Queen - Bohemian Rhapsody", channel = "Queen Official", duration = "5:55"},
 })
 
-print("✅ YouTube Player Pro - Mobile Final!")
+print("✅ YouTube Player Pro - No Corner!")
 print("📱 Chạm nút đỏ để mở menu")
-print("🔍 Nhập từ khóa và bấm Tìm để search")
-print("📺 Chọn video để phát")
