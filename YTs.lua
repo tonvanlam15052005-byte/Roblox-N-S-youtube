@@ -10,7 +10,7 @@ local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
-local ClipboardService = game:GetService("ClipboardService")
+-- BỎ DÒNG ClipboardService
 
 -- ===== CONFIG =====
 local Request = request or (http and http.request) or (syn and syn.request)
@@ -174,6 +174,8 @@ local CloseBtn = CreateUI("TextButton", {
 })
 CloseBtn.MouseButton1Click:Connect(function()
     Tween(MainWindow, {BackgroundTransparency = 1, Size = UDim2.new(0, 0, 0, 0)}, 0.3)
+    task.wait(0.3)
+    MainWindow.Visible = false
 end)
 
 MakeDraggable(TitleBar, MainWindow)
@@ -489,7 +491,7 @@ local function PlayVideo(videoId, videoData)
             writefile(filePath, data)
         else
             -- Show error
-            CreateUI("TextLabel", {
+            local err = CreateUI("TextLabel", {
                 Parent = PlayerArea,
                 Size = UDim2.new(1, 0, 1, 0),
                 BackgroundTransparency = 1,
@@ -498,6 +500,8 @@ local function PlayVideo(videoId, videoData)
                 TextSize = 20,
                 Font = Enum.Font.GothamBold,
             })
+            task.wait(2)
+            err:Destroy()
             return
         end
     end
@@ -524,19 +528,25 @@ local function PlayVideo(videoId, videoData)
     
     -- Update title
     if videoData then
+        -- Xóa title cũ
+        for _, child in pairs(MainWindow:GetChildren()) do
+            if child:IsA("TextLabel") and child.Name == "NowPlaying" then
+                child:Destroy()
+            end
+        end
+        
         local titleLabel = CreateUI("TextLabel", {
             Parent = MainWindow,
+            Name = "NowPlaying",
             Size = UDim2.new(0.8, 0, 0, 25),
-            Position = UDim2.new(0.1, 0, 0, 430),
+            Position = UDim2.new(0.1, 0, 0, 425),
             BackgroundTransparency = 1,
-            Text = videoData.title or "",
+            Text = "▶ " .. (videoData.title or ""),
             TextColor3 = Theme.Text,
             TextSize = 12,
             Font = Enum.Font.Gotham,
             TextTruncate = Enum.TextTruncate.AtEnd,
         })
-        task.wait(3)
-        titleLabel:Destroy()
     end
 end
 
@@ -580,11 +590,21 @@ end)
 
 -- ===== PLAYBACK CONTROLS =====
 PlayBtn.MouseButton1Click:Connect(function()
+    if currentVideoId == nil then
+        -- Nếu chưa có video, load demo
+        PlayVideo("dQw4w9WgXcQ", {
+            title = "Rick Astley - Never Gonna Give You Up",
+            channel = "Rick Astley",
+            duration = "3:33"
+        })
+        return
+    end
+    
     if isPlaying then
         if currentMode == "video" then
             VideoPlayer:Pause()
         else
-            soundInstance:Pause()
+            if soundInstance then soundInstance:Pause() end
         end
         PlayBtn.Text = "▶"
         isPlaying = false
@@ -592,7 +612,7 @@ PlayBtn.MouseButton1Click:Connect(function()
         if currentMode == "video" then
             VideoPlayer:Play()
         else
-            soundInstance:Resume()
+            if soundInstance then soundInstance:Resume() end
         end
         PlayBtn.Text = "⏸"
         isPlaying = true
@@ -612,11 +632,15 @@ end)
 -- ===== TIMELINE UPDATE =====
 RunService.RenderStepped:Connect(function()
     if currentMode == "video" and VideoPlayer.Visible and VideoPlayer.IsLoaded then
-        local progress = VideoPlayer.TimePosition / VideoPlayer.TimeLength
-        TimelineLine.Size = UDim2.new(progress, 0, 1, 0)
+        if VideoPlayer.TimeLength > 0 then
+            local progress = VideoPlayer.TimePosition / VideoPlayer.TimeLength
+            TimelineLine.Size = UDim2.new(math.clamp(progress, 0, 1), 0, 1, 0)
+        end
     elseif currentMode == "audio" and soundInstance and soundInstance.IsLoaded then
-        local progress = soundInstance.TimePosition / soundInstance.TimeLength
-        TimelineLine.Size = UDim2.new(progress, 0, 1, 0)
+        if soundInstance.TimeLength > 0 then
+            local progress = soundInstance.TimePosition / soundInstance.TimeLength
+            TimelineLine.Size = UDim2.new(math.clamp(progress, 0, 1), 0, 1, 0)
+        end
     end
 end)
 
@@ -626,9 +650,9 @@ Timeline.InputBegan:Connect(function(input)
         local pos = input.Position.X - Timeline.AbsolutePosition.X
         local progress = math.clamp(pos / Timeline.AbsoluteSize.X, 0, 1)
         
-        if currentMode == "video" and VideoPlayer.Visible then
+        if currentMode == "video" and VideoPlayer.Visible and VideoPlayer.IsLoaded then
             VideoPlayer.TimePosition = VideoPlayer.TimeLength * progress
-        elseif currentMode == "audio" and soundInstance then
+        elseif currentMode == "audio" and soundInstance and soundInstance.IsLoaded then
             soundInstance.TimePosition = soundInstance.TimeLength * progress
         end
     end
