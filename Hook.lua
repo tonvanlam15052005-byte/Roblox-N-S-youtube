@@ -1,37 +1,17 @@
 -- ==========================================================
--- SCRIPT TEST ĐƠN GIẢN NHẤT
+-- CÁCH DÙNG KETAMINE ĐỂ BẮT SCRIPT V8
 -- ==========================================================
 
-print("=== TEST ===")
+print("🔧 Đang khởi tạo Logger...")
 
--- 1. Kiểm tra loadstring
-local testCode = "print('Hello')"
-local fn = loadstring(testCode)
-if fn then
-    pcall(fn)
-    print("✅ loadstring hoạt động")
-else
-    print("❌ loadstring không hoạt động")
-end
+-- Giả sử bạn có script Ketamine hoặc Octo~Spy
+-- Bạn có thể load nó từ web hoặc paste trực tiếp
+loadstring(game:HttpGet("https://raw.githubusercontent.com/SomeDeveloper/Ketamine/main/loader.lua"))()
 
--- 2. Kiểm tra writefile
-if writefile then
-    pcall(function()
-        writefile("test.txt", "Hello from Delta!")
-        print("✅ writefile hoạt động")
-    end)
-else
-    print("❌ writefile không có")
-end
+-- Đợi logger khởi tạo xong
+wait(1)
 
--- 3. Kiểm tra setclipboard
-if setclipboard then
-    pcall(function()
-        setclipboard("Hello")
-        print("✅ setclipboard hoạt động")
-    end)
-else
-    print("❌ setclipboard không có")
-end
+print("🔄 Đang chạy script V8...")
 
-print("=== KẾT THÚC ===")
+-- Sau đó chạy script V8
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Dan41/Roblox-Scripts/refs/heads/main/Youtube%20Music%20Player/YoutubeMusicPlayer.lua"))()
