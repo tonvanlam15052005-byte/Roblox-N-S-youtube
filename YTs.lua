@@ -1,11 +1,14 @@
 --[[
-    YouTube Player Pro - Fixed ZIndex
+    YouTube Player Pro - Tổng hợp từ Videoplayer + Audioplayer
+    Chức năng: Xem video + Nghe audio, tìm kiếm, dán link
+    Chạy trên mobile Delta
 ]]
 
 local player = game.Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 -- ===== CONFIG =====
 local Request = request or (http and http.request) or (syn and syn.request)
@@ -13,15 +16,15 @@ local GetAsset = getcustomasset or getsynasset
 local Domain = "https://parvus.fun/"
 
 -- ===== TẠO FOLDER =====
-if not isfolder("youtube_media") then makefolder("youtube_media") end
-if not isfolder("youtube_media/videos") then makefolder("youtube_media/videos") end
-if not isfolder("youtube_media/audios") then makefolder("youtube_media/audios") end
-
--- ===== LẤY KÍCH THƯỚC MÀN HÌNH =====
-local screenSize = player:GetMouse().ViewSizeX and Vector2.new(
-    player:GetMouse().ViewSizeX,
-    player:GetMouse().ViewSizeY
-) or Vector2.new(800, 600)
+if not isfolder("youtube_media") then 
+    makefolder("youtube_media") 
+end
+if not isfolder("youtube_media/videos") then 
+    makefolder("youtube_media/videos") 
+end
+if not isfolder("youtube_media/audios") then 
+    makefolder("youtube_media/audios") 
+end
 
 -- ===== TẠO GUI =====
 local ScreenGui = Instance.new("ScreenGui")
@@ -30,30 +33,30 @@ ScreenGui.ResetOnSpawn = false
 
 -- ===== STYLE =====
 local Colors = {
-    BG = Color3.fromRGB(20, 20, 25),
-    Surface = Color3.fromRGB(30, 30, 38),
-    Surface2 = Color3.fromRGB(40, 40, 50),
+    BG = Color3.fromRGB(18, 18, 22),
+    Surface = Color3.fromRGB(28, 28, 35),
+    Surface2 = Color3.fromRGB(38, 38, 48),
     Primary = Color3.fromRGB(255, 0, 0),
     Text = Color3.fromRGB(255, 255, 255),
-    TextDim = Color3.fromRGB(160, 160, 170),
+    TextDim = Color3.fromRGB(155, 155, 165),
 }
 
 -- ===== NÚT MỞ MENU =====
 local FloatBtn = Instance.new("TextButton")
 FloatBtn.Parent = ScreenGui
-FloatBtn.Size = UDim2.new(0, 70, 0, 70)
-FloatBtn.Position = UDim2.new(0.85, -35, 0.80, 0)
+FloatBtn.Size = UDim2.new(0, 65, 0, 65)
+FloatBtn.Position = UDim2.new(0.85, -32, 0.82, 0)
 FloatBtn.BackgroundColor3 = Colors.Primary
 FloatBtn.BorderSizePixel = 0
 FloatBtn.Text = "▶"
 FloatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-FloatBtn.TextSize = 30
+FloatBtn.TextSize = 28
 FloatBtn.Font = Enum.Font.GothamBold
 FloatBtn.ZIndex = 999
 
 -- ===== MAIN WINDOW =====
-local winWidth = math.min(420, screenSize.X - 20)
-local winHeight = math.min(580, screenSize.Y - 40)
+local winWidth = 380
+local winHeight = 550
 
 local MainWindow = Instance.new("Frame")
 MainWindow.Parent = ScreenGui
@@ -65,111 +68,34 @@ MainWindow.Visible = false
 MainWindow.ZIndex = 100
 MainWindow.ClipsDescendants = true
 
--- ===== DRAG WINDOW =====
-local isDragging = false
-local dragStart = nil
-local startPos = nil
-
-local function SetupDrag(object)
-    object.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-            isDragging = true
-            dragStart = input.Position
-            startPos = MainWindow.Position
-        end
-    end)
-    
-    object.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-            isDragging = false
-        end
-    end)
-end
-
-UserInputService.InputChanged:Connect(function(input)
-    if isDragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local delta = input.Position - dragStart
-        local newX = startPos.X.Offset + delta.X
-        local newY = startPos.Y.Offset + delta.Y
-        local maxX = screenSize.X - MainWindow.AbsoluteSize.X
-        local maxY = screenSize.Y - MainWindow.AbsoluteSize.Y
-        newX = math.clamp(newX, 0, maxX)
-        newY = math.clamp(newY, 0, maxY)
-        MainWindow.Position = UDim2.new(0, newX, 0, newY)
-    end
-end)
-
--- ===== RESIZE HANDLE =====
-local ResizeHandle = Instance.new("TextButton")
-ResizeHandle.Parent = MainWindow
-ResizeHandle.Size = UDim2.new(0, 40, 0, 40)
-ResizeHandle.Position = UDim2.new(1, -40, 1, -40)
-ResizeHandle.BackgroundColor3 = Colors.Primary
-ResizeHandle.BorderSizePixel = 0
-ResizeHandle.Text = "↘"
-ResizeHandle.TextColor3 = Colors.Text
-ResizeHandle.TextSize = 20
-ResizeHandle.Font = Enum.Font.GothamBold
-ResizeHandle.ZIndex = 200
-
-local isResizing = false
-local resizeStart = nil
-local startSize = nil
-
-ResizeHandle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        isResizing = true
-        resizeStart = input.Position
-        startSize = MainWindow.Size
-    end
-end)
-
-ResizeHandle.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        isResizing = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if isResizing and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local delta = input.Position - resizeStart
-        local newWidth = math.max(300, startSize.X.Offset + delta.X)
-        local newHeight = math.max(400, startSize.Y.Offset + delta.Y)
-        newWidth = math.min(newWidth, screenSize.X - 20)
-        newHeight = math.min(newHeight, screenSize.Y - 40)
-        MainWindow.Size = UDim2.new(0, newWidth, 0, newHeight)
-    end
-end)
-
 -- ===== TITLE BAR =====
 local TitleBar = Instance.new("Frame")
 TitleBar.Parent = MainWindow
-TitleBar.Size = UDim2.new(1, 0, 0, 45)
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
 TitleBar.BackgroundColor3 = Colors.Surface
 TitleBar.BorderSizePixel = 0
 TitleBar.ZIndex = 150
-SetupDrag(TitleBar)
 
 local TitleText = Instance.new("TextLabel")
 TitleText.Parent = TitleBar
 TitleText.Size = UDim2.new(0.6, 0, 1, 0)
-TitleText.Position = UDim2.new(0, 15, 0, 0)
+TitleText.Position = UDim2.new(0, 12, 0, 0)
 TitleText.BackgroundTransparency = 1
 TitleText.Text = "🎬 YouTube Player"
 TitleText.TextColor3 = Colors.Text
-TitleText.TextSize = 16
+TitleText.TextSize = 15
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 TitleText.ZIndex = 160
 
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Parent = TitleBar
-CloseBtn.Size = UDim2.new(0, 50, 1, 0)
-CloseBtn.Position = UDim2.new(1, -50, 0, 0)
+CloseBtn.Size = UDim2.new(0, 45, 1, 0)
+CloseBtn.Position = UDim2.new(1, -45, 0, 0)
 CloseBtn.BackgroundTransparency = 1
 CloseBtn.Text = "✕"
 CloseBtn.TextColor3 = Colors.TextDim
-CloseBtn.TextSize = 20
+CloseBtn.TextSize = 18
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.ZIndex = 160
 CloseBtn.MouseButton1Click:Connect(function()
@@ -177,46 +103,100 @@ CloseBtn.MouseButton1Click:Connect(function()
     FloatBtn.Text = "▶"
 end)
 
+-- ===== DRAG =====
+local isDragging = false
+local dragStart = nil
+local startPos = nil
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isDragging = true
+        dragStart = input.Position
+        startPos = MainWindow.Position
+    end
+end)
+
+TitleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isDragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if isDragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - dragStart
+        MainWindow.Position = UDim2.new(0, startPos.X.Offset + delta.X, 0, startPos.Y.Offset + delta.Y)
+    end
+end)
+
 -- ===== SEARCH BAR =====
 local SearchFrame = Instance.new("Frame")
 SearchFrame.Parent = MainWindow
-SearchFrame.Size = UDim2.new(1, 0, 0, 55)
-SearchFrame.Position = UDim2.new(0, 0, 0, 45)
+SearchFrame.Size = UDim2.new(1, 0, 0, 90)
+SearchFrame.Position = UDim2.new(0, 0, 0, 40)
 SearchFrame.BackgroundColor3 = Colors.Surface2
 SearchFrame.BorderSizePixel = 0
 SearchFrame.ZIndex = 140
 
+-- Input tìm kiếm
 local SearchBox = Instance.new("TextBox")
 SearchBox.Parent = SearchFrame
-SearchBox.Size = UDim2.new(0.6, -15, 0, 38)
-SearchBox.Position = UDim2.new(0, 12, 0, 8)
+SearchBox.Size = UDim2.new(0.6, -10, 0, 35)
+SearchBox.Position = UDim2.new(0, 10, 0, 8)
 SearchBox.BackgroundColor3 = Colors.BG
 SearchBox.BorderSizePixel = 0
 SearchBox.PlaceholderText = "🔍 Tìm video..."
 SearchBox.PlaceholderColor3 = Colors.TextDim
 SearchBox.TextColor3 = Colors.Text
-SearchBox.TextSize = 15
+SearchBox.TextSize = 14
 SearchBox.Font = Enum.Font.Gotham
 SearchBox.ClearTextOnFocus = false
 SearchBox.ZIndex = 150
 
 local SearchBtn = Instance.new("TextButton")
 SearchBtn.Parent = SearchFrame
-SearchBtn.Size = UDim2.new(0, 80, 0, 38)
-SearchBtn.Position = UDim2.new(0.64, 5, 0, 8)
+SearchBtn.Size = UDim2.new(0, 70, 0, 35)
+SearchBtn.Position = UDim2.new(0.63, 5, 0, 8)
 SearchBtn.BackgroundColor3 = Colors.Primary
 SearchBtn.BorderSizePixel = 0
 SearchBtn.Text = "Tìm"
 SearchBtn.TextColor3 = Colors.Text
-SearchBtn.TextSize = 15
+SearchBtn.TextSize = 14
 SearchBtn.Font = Enum.Font.GothamBold
 SearchBtn.ZIndex = 150
 
--- ===== MODE SWITCH =====
+-- Input dán link/ID
+local LinkBox = Instance.new("TextBox")
+LinkBox.Parent = SearchFrame
+LinkBox.Size = UDim2.new(0.7, -10, 0, 32)
+LinkBox.Position = UDim2.new(0, 10, 0, 48)
+LinkBox.BackgroundColor3 = Colors.BG
+LinkBox.BorderSizePixel = 0
+LinkBox.PlaceholderText = "🔗 Dán link hoặc Video ID..."
+LinkBox.PlaceholderColor3 = Colors.TextDim
+LinkBox.TextColor3 = Colors.Text
+LinkBox.TextSize = 13
+LinkBox.Font = Enum.Font.Gotham
+LinkBox.ClearTextOnFocus = false
+LinkBox.ZIndex = 150
+
+local LoadBtn = Instance.new("TextButton")
+LoadBtn.Parent = SearchFrame
+LoadBtn.Size = UDim2.new(0, 70, 0, 32)
+LoadBtn.Position = UDim2.new(0.63, 5, 0, 48)
+LoadBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+LoadBtn.BorderSizePixel = 0
+LoadBtn.Text = "Phát"
+LoadBtn.TextColor3 = Colors.Text
+LoadBtn.TextSize = 14
+LoadBtn.Font = Enum.Font.GothamBold
+LoadBtn.ZIndex = 150
+
+-- ===== MODE =====
 local ModeFrame = Instance.new("Frame")
 ModeFrame.Parent = SearchFrame
-ModeFrame.Size = UDim2.new(0, 90, 0, 32)
-ModeFrame.Position = UDim2.new(0.78, 0, 0, 11)
+ModeFrame.Size = UDim2.new(0, 85, 0, 30)
+ModeFrame.Position = UDim2.new(0.78, 0, 0, 10)
 ModeFrame.BackgroundColor3 = Colors.BG
 ModeFrame.BorderSizePixel = 0
 ModeFrame.ZIndex = 150
@@ -228,7 +208,7 @@ ModeVid.BackgroundColor3 = Colors.Primary
 ModeVid.BorderSizePixel = 0
 ModeVid.Text = "🎥"
 ModeVid.TextColor3 = Colors.Text
-ModeVid.TextSize = 15
+ModeVid.TextSize = 14
 ModeVid.Font = Enum.Font.GothamBold
 ModeVid.ZIndex = 160
 
@@ -240,17 +220,17 @@ ModeAud.BackgroundTransparency = 1
 ModeAud.BorderSizePixel = 0
 ModeAud.Text = "🎵"
 ModeAud.TextColor3 = Colors.TextDim
-ModeAud.TextSize = 15
+ModeAud.TextSize = 14
 ModeAud.Font = Enum.Font.GothamBold
 ModeAud.ZIndex = 160
 
-local currentMode = "video"
+local currentMode = "video" -- video or audio
 
--- ===== PLAYER =====
+-- ===== VIDEO PLAYER =====
 local PlayerFrame = Instance.new("Frame")
 PlayerFrame.Parent = MainWindow
 PlayerFrame.Size = UDim2.new(1, 0, 0, 180)
-PlayerFrame.Position = UDim2.new(0, 0, 0, 100)
+PlayerFrame.Position = UDim2.new(0, 0, 0, 130)
 PlayerFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 PlayerFrame.BorderSizePixel = 0
 PlayerFrame.ZIndex = 120
@@ -264,7 +244,7 @@ VideoPlayer.ZIndex = 130
 local AudioFrame = Instance.new("Frame")
 AudioFrame.Parent = PlayerFrame
 AudioFrame.Size = UDim2.new(1, 0, 1, 0)
-AudioFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+AudioFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 AudioFrame.Visible = false
 AudioFrame.ZIndex = 130
 
@@ -275,7 +255,7 @@ AudioIcon.Position = UDim2.new(0, 0, 0.2, 0)
 AudioIcon.BackgroundTransparency = 1
 AudioIcon.Text = "🎵"
 AudioIcon.TextColor3 = Colors.Primary
-AudioIcon.TextSize = 60
+AudioIcon.TextSize = 55
 AudioIcon.Font = Enum.Font.GothamBold
 AudioIcon.ZIndex = 140
 
@@ -294,9 +274,9 @@ AudioStatus.ZIndex = 140
 local NowPlaying = Instance.new("TextLabel")
 NowPlaying.Parent = MainWindow
 NowPlaying.Size = UDim2.new(0.9, 0, 0, 25)
-NowPlaying.Position = UDim2.new(0.05, 0, 0, 285)
+NowPlaying.Position = UDim2.new(0.05, 0, 0, 315)
 NowPlaying.BackgroundTransparency = 1
-NowPlaying.Text = "👆 Chọn video để phát"
+NowPlaying.Text = "👆 Chọn video hoặc dán link"
 NowPlaying.TextColor3 = Colors.TextDim
 NowPlaying.TextSize = 12
 NowPlaying.Font = Enum.Font.Gotham
@@ -306,8 +286,8 @@ NowPlaying.ZIndex = 150
 -- ===== TIMELINE =====
 local Timeline = Instance.new("Frame")
 Timeline.Parent = MainWindow
-Timeline.Size = UDim2.new(0.9, 0, 0, 16)
-Timeline.Position = UDim2.new(0.05, 0, 0, 312)
+Timeline.Size = UDim2.new(0.9, 0, 0, 14)
+Timeline.Position = UDim2.new(0.05, 0, 0, 342)
 Timeline.BackgroundColor3 = Colors.Surface2
 Timeline.BorderSizePixel = 0
 Timeline.ZIndex = 150
@@ -322,8 +302,8 @@ TimelineLine.ZIndex = 160
 -- ===== CONTROLS =====
 local Controls = Instance.new("Frame")
 Controls.Parent = MainWindow
-Controls.Size = UDim2.new(1, 0, 0, 50)
-Controls.Position = UDim2.new(0, 0, 0, 332)
+Controls.Size = UDim2.new(1, 0, 0, 55)
+Controls.Position = UDim2.new(0, 0, 0, 360)
 Controls.BackgroundColor3 = Colors.Surface
 Controls.BorderSizePixel = 0
 Controls.ZIndex = 140
@@ -348,45 +328,45 @@ local PrevBtn = MakeBtn(Controls, UDim2.new(0.5, -100, 0, 3), "⏮", 38)
 local NextBtn = MakeBtn(Controls, UDim2.new(0.5, 0, 0, 3), "⏭", 38)
 local LoopBtn = MakeBtn(Controls, UDim2.new(0.5, 50, 0, 3), "🔁", 38)
 
--- ===== VOLUME =====
-local VolumeFrame = Instance.new("Frame")
-VolumeFrame.Parent = Controls
-VolumeFrame.Size = UDim2.new(0, 80, 0, 16)
-VolumeFrame.Position = UDim2.new(0.85, 0, 0.5, -8)
-VolumeFrame.BackgroundColor3 = Colors.Surface2
-VolumeFrame.BorderSizePixel = 0
-VolumeFrame.ZIndex = 150
+-- Volume
+local VolFrame = Instance.new("Frame")
+VolFrame.Parent = Controls
+VolFrame.Size = UDim2.new(0, 70, 0, 14)
+VolFrame.Position = UDim2.new(0.85, 0, 0.5, -7)
+VolFrame.BackgroundColor3 = Colors.Surface2
+VolFrame.BorderSizePixel = 0
+VolFrame.ZIndex = 150
 
-local VolumeLine = Instance.new("Frame")
-VolumeLine.Parent = VolumeFrame
-VolumeLine.Size = UDim2.new(0.5, 0, 1, 0)
-VolumeLine.BackgroundColor3 = Colors.Primary
-VolumeLine.BorderSizePixel = 0
-VolumeLine.ZIndex = 160
+local VolLine = Instance.new("Frame")
+VolLine.Parent = VolFrame
+VolLine.Size = UDim2.new(0.5, 0, 1, 0)
+VolLine.BackgroundColor3 = Colors.Primary
+VolLine.BorderSizePixel = 0
+VolLine.ZIndex = 160
 
-local VolumeBtn = Instance.new("TextButton")
-VolumeBtn.Parent = Controls
-VolumeBtn.Size = UDim2.new(0, 30, 0, 30)
-VolumeBtn.Position = UDim2.new(0.8, 0, 0.5, -15)
-VolumeBtn.BackgroundTransparency = 1
-VolumeBtn.Text = "🔊"
-VolumeBtn.TextColor3 = Colors.Text
-VolumeBtn.TextSize = 16
-VolumeBtn.Font = Enum.Font.GothamBold
-VolumeBtn.ZIndex = 150
+local VolBtn = Instance.new("TextButton")
+VolBtn.Parent = Controls
+VolBtn.Size = UDim2.new(0, 25, 0, 25)
+VolBtn.Position = UDim2.new(0.8, 0, 0.5, -12)
+VolBtn.BackgroundTransparency = 1
+VolBtn.Text = "🔊"
+VolBtn.TextColor3 = Colors.Text
+VolBtn.TextSize = 14
+VolBtn.Font = Enum.Font.GothamBold
+VolBtn.ZIndex = 150
 
 local currentVolume = 0.5
 
-VolumeFrame.InputBegan:Connect(function(input)
+VolFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        local pos = input.Position.X - VolumeFrame.AbsolutePosition.X
-        local vol = math.clamp(pos / VolumeFrame.AbsoluteSize.X, 0, 1)
+        local pos = input.Position.X - VolFrame.AbsolutePosition.X
+        local vol = math.clamp(pos / VolFrame.AbsoluteSize.X, 0, 1)
         currentVolume = vol
-        VolumeLine.Size = UDim2.new(vol, 0, 1, 0)
-        if currentMode == "video" then
+        VolLine.Size = UDim2.new(vol, 0, 1, 0)
+        if currentMode == "video" and VideoPlayer.Visible then
             VideoPlayer.Volume = vol
-        else
-            if soundInst then soundInst.Volume = vol end
+        elseif soundInst then
+            soundInst.Volume = vol
         end
     end
 end)
@@ -394,8 +374,8 @@ end)
 -- ===== RESULTS =====
 local ResultsFrame = Instance.new("ScrollingFrame")
 ResultsFrame.Parent = MainWindow
-ResultsFrame.Size = UDim2.new(1, 0, 0, 130)
-ResultsFrame.Position = UDim2.new(0, 0, 0, 385)
+ResultsFrame.Size = UDim2.new(1, 0, 0, 110)
+ResultsFrame.Position = UDim2.new(0, 0, 0, 420)
 ResultsFrame.BackgroundColor3 = Colors.Surface2
 ResultsFrame.BorderSizePixel = 0
 ResultsFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -403,24 +383,49 @@ ResultsFrame.ScrollBarThickness = 4
 ResultsFrame.ScrollBarImageColor3 = Colors.Primary
 ResultsFrame.ZIndex = 130
 
--- ===== SEARCH FUNCTION =====
+-- ===== FUNCTIONS =====
+local soundInst = nil
+local isPlaying = false
+local isLooping = false
+local currentVideo = nil
+local queue = {}
+local queueIndex = 1
+
+-- Lấy Video ID từ link YouTube
+local function getVideoId(input)
+    input = string.lower(input)
+    
+    -- Link youtube.com
+    local id = string.match(input, "v=([%w_-]+)")
+    if id then return id end
+    
+    -- Link youtu.be
+    id = string.match(input, "youtu%.be/([%w_-]+)")
+    if id then return id end
+    
+    -- Nếu chỉ là ID (11 ký tự)
+    if string.match(input, "^[%w_-]+$") and #input == 11 then
+        return input
+    end
+    
+    return nil
+end
+
+-- Search YouTube
 local function SearchYouTube(query)
     local encoded = HttpService:UrlEncode(query)
-    local url = Domain .. "yt/search?q=" .. encoded .. "&limit=10"
-    
     local response = Request({
         Method = "GET",
-        Url = url
+        Url = Domain .. "yt/search?q=" .. encoded .. "&limit=10"
     })
-    
     if response and response.StatusCode == 200 then
         return HttpService:JSONDecode(response.Body)
     end
     return nil
 end
 
--- ===== REQUEST VIDEO =====
-local function RequestVideoFile(videoId, type)
+-- Tải video/audio
+local function RequestMedia(videoId, type)
     type = type or "video"
     local response = Request({
         Method = "POST",
@@ -430,7 +435,7 @@ local function RequestVideoFile(videoId, type)
     return response and response.Body or false
 end
 
--- ===== DISPLAY RESULTS =====
+-- Hiển thị kết quả
 local function DisplayResults(results)
     for _, child in pairs(ResultsFrame:GetChildren()) do
         if child:IsA("Frame") or child:IsA("TextLabel") then
@@ -455,7 +460,7 @@ local function DisplayResults(results)
     for i, video in ipairs(results) do
         local item = Instance.new("Frame")
         item.Parent = ResultsFrame
-        item.Size = UDim2.new(1, -16, 0, 60)
+        item.Size = UDim2.new(1, -16, 0, 55)
         item.Position = UDim2.new(0, 8, 0, y)
         item.BackgroundColor3 = Colors.Surface
         item.BorderSizePixel = 0
@@ -485,7 +490,7 @@ local function DisplayResults(results)
         local channel = Instance.new("TextLabel")
         channel.Parent = item
         channel.Size = UDim2.new(0.6, -10, 0.3, 0)
-        channel.Position = UDim2.new(0, 12, 0, 32)
+        channel.Position = UDim2.new(0, 12, 0, 30)
         channel.BackgroundTransparency = 1
         channel.Text = video.channel or "Unknown"
         channel.TextColor3 = Colors.TextDim
@@ -510,20 +515,13 @@ local function DisplayResults(results)
             PlayVideo(video.videoId, video)
         end)
         
-        y = y + 65
+        y = y + 60
     end
     
     ResultsFrame.CanvasSize = UDim2.new(0, 0, 0, y)
 end
 
--- ===== PLAY VIDEO =====
-local soundInst = nil
-local isPlaying = false
-local isLooping = false
-local currentVideo = nil
-local queue = {}
-local queueIndex = 1
-
+-- Phát video
 local function PlayVideo(videoId, videoData)
     if not videoId then return end
     
@@ -535,6 +533,9 @@ local function PlayVideo(videoId, videoData)
     if videoData and videoData.title then
         NowPlaying.Text = "▶ " .. videoData.title
         NowPlaying.TextColor3 = Colors.Text
+    else
+        NowPlaying.Text = "▶ Đang tải..."
+        NowPlaying.TextColor3 = Colors.Text
     end
     
     if not isfile(path) then
@@ -544,11 +545,11 @@ local function PlayVideo(videoId, videoData)
         loading.BackgroundTransparency = 1
         loading.Text = "⏳ Đang tải..."
         loading.TextColor3 = Colors.Text
-        loading.TextSize = 22
+        loading.TextSize = 20
         loading.Font = Enum.Font.GothamBold
         loading.ZIndex = 200
         
-        local data = RequestVideoFile(videoId, mediaType)
+        local data = RequestMedia(videoId, mediaType)
         loading:Destroy()
         
         if data then
@@ -607,21 +608,35 @@ SearchBtn.MouseButton1Click:Connect(function()
     else
         NowPlaying.Text = "❌ Không tìm thấy"
         NowPlaying.TextColor3 = Color3.fromRGB(255, 50, 50)
-        local demo = {
-            {videoId = "dQw4w9WgXcQ", title = "Rick Astley - Never Gonna Give You Up", channel = "Rick Astley", duration = "3:33"},
-            {videoId = "JGwWNGJdvx8", title = "Despacito - Luis Fonsi ft. Daddy Yankee", channel = "Luis Fonsi", duration = "4:41"},
-            {videoId = "fJ9rUzIMcZQ", title = "Queen - Bohemian Rhapsody", channel = "Queen Official", duration = "5:55"},
-        }
-        queue = demo
-        queueIndex = 1
-        DisplayResults(demo)
     end
 end)
 
 SearchBox.FocusLost:Connect(function(enter)
-    if enter then
-        SearchBtn.MouseButton1Click:Fire()
+    if enter then SearchBtn.MouseButton1Click:Fire() end
+end)
+
+-- ===== LOAD LINK/ID =====
+LoadBtn.MouseButton1Click:Connect(function()
+    local input = LinkBox.Text
+    if #input < 3 then
+        NowPlaying.Text = "⚠️ Nhập link hoặc Video ID"
+        NowPlaying.TextColor3 = Color3.fromRGB(255, 200, 0)
+        return
     end
+    
+    local videoId = getVideoId(input)
+    if videoId then
+        NowPlaying.Text = "▶ Đang phát: " .. videoId
+        NowPlaying.TextColor3 = Colors.Text
+        PlayVideo(videoId, {title = "Video: " .. videoId})
+    else
+        NowPlaying.Text = "❌ Không nhận diện được link"
+        NowPlaying.TextColor3 = Color3.fromRGB(255, 50, 50)
+    end
+end)
+
+LinkBox.FocusLost:Connect(function(enter)
+    if enter then LoadBtn.MouseButton1Click:Fire() end
 end)
 
 -- ===== MODE =====
@@ -650,12 +665,6 @@ PlayBtn.MouseButton1Click:Connect(function()
     if currentVideo == nil then
         if #queue > 0 then
             PlayVideo(queue[1].videoId, queue[1])
-        else
-            PlayVideo("dQw4w9WgXcQ", {
-                title = "Rick Astley - Never Gonna Give You Up",
-                channel = "Rick Astley",
-                duration = "3:33"
-            })
         end
         return
     end
@@ -738,12 +747,10 @@ local menuOpen = false
 FloatBtn.MouseButton1Click:Connect(function()
     menuOpen = not menuOpen
     MainWindow.Visible = menuOpen
-    if not menuOpen then
-        FloatBtn.Text = "▶"
-    end
+    if not menuOpen then FloatBtn.Text = "▶" end
 end)
 
--- ===== KÉO FLOATING BUTTON =====
+-- ===== KÉO FLOATING =====
 local floatDrag = false
 local floatStart = nil
 local floatPos = nil
@@ -765,13 +772,13 @@ end)
 UserInputService.InputChanged:Connect(function(input)
     if floatDrag and input.UserInputType == Enum.UserInputType.Touch then
         local delta = input.Position - floatStart
-        local newX = math.clamp(floatPos.X.Offset + delta.X, 0, screenSize.X - 70)
-        local newY = math.clamp(floatPos.Y.Offset + delta.Y, 0, screenSize.Y - 70)
+        local newX = math.clamp(floatPos.X.Offset + delta.X, 0, 800 - 70)
+        local newY = math.clamp(floatPos.Y.Offset + delta.Y, 0, 600 - 70)
         FloatBtn.Position = UDim2.new(0, newX, 0, newY)
     end
 end)
 
--- ===== LOAD DEMO =====
+-- ===== DEMO =====
 task.wait(0.5)
 local demo = {
     {videoId = "dQw4w9WgXcQ", title = "Rick Astley - Never Gonna Give You Up", channel = "Rick Astley", duration = "3:33"},
@@ -782,6 +789,11 @@ queue = demo
 queueIndex = 1
 DisplayResults(demo)
 
-print("✅ YouTube Player Pro - Fixed!")
-print("📱 Chạm nút đỏ để mở")
-print("📱 Tất cả ZIndex đã được sắp xếp đúng")
+print("✅ YouTube Player Pro - Tổng hợp từ 2 code!")
+print("📱 Chức năng:")
+print("  🔍 Tìm kiếm video")
+print("  🔗 Dán link hoặc Video ID")
+print("  🎥 Xem video / 🎵 Nghe audio")
+print("  ⏮⏭ Next/Prev trong danh sách")
+print("  🔊 Kéo thanh volume")
+print("  🔁 Loop video")
