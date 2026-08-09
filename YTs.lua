@@ -1,14 +1,12 @@
 --[[
-    YouTube Player Pro - Tổng hợp từ Videoplayer + Audioplayer
-    Chức năng: Xem video + Nghe audio, tìm kiếm, dán link
-    Chạy trên mobile Delta
+    YouTube Player Pro - Fix Loading
+    Hiển thị lỗi rõ ràng, có fallback
 ]]
 
 local player = game.Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 -- ===== CONFIG =====
 local Request = request or (http and http.request) or (syn and syn.request)
@@ -16,15 +14,9 @@ local GetAsset = getcustomasset or getsynasset
 local Domain = "https://parvus.fun/"
 
 -- ===== TẠO FOLDER =====
-if not isfolder("youtube_media") then 
-    makefolder("youtube_media") 
-end
-if not isfolder("youtube_media/videos") then 
-    makefolder("youtube_media/videos") 
-end
-if not isfolder("youtube_media/audios") then 
-    makefolder("youtube_media/audios") 
-end
+if not isfolder("youtube_media") then makefolder("youtube_media") end
+if not isfolder("youtube_media/videos") then makefolder("youtube_media/videos") end
+if not isfolder("youtube_media/audios") then makefolder("youtube_media/audios") end
 
 -- ===== TẠO GUI =====
 local ScreenGui = Instance.new("ScreenGui")
@@ -224,7 +216,7 @@ ModeAud.TextSize = 14
 ModeAud.Font = Enum.Font.GothamBold
 ModeAud.ZIndex = 160
 
-local currentMode = "video" -- video or audio
+local currentMode = "video"
 
 -- ===== VIDEO PLAYER =====
 local PlayerFrame = Instance.new("Frame")
@@ -391,48 +383,93 @@ local currentVideo = nil
 local queue = {}
 local queueIndex = 1
 
--- Lấy Video ID từ link YouTube
+-- Lấy Video ID
 local function getVideoId(input)
     input = string.lower(input)
-    
-    -- Link youtube.com
     local id = string.match(input, "v=([%w_-]+)")
     if id then return id end
-    
-    -- Link youtu.be
     id = string.match(input, "youtu%.be/([%w_-]+)")
     if id then return id end
-    
-    -- Nếu chỉ là ID (11 ký tự)
     if string.match(input, "^[%w_-]+$") and #input == 11 then
         return input
     end
-    
     return nil
 end
 
--- Search YouTube
+-- Search YouTube với error handling
 local function SearchYouTube(query)
     local encoded = HttpService:UrlEncode(query)
-    local response = Request({
-        Method = "GET",
-        Url = Domain .. "yt/search?q=" .. encoded .. "&limit=10"
-    })
-    if response and response.StatusCode == 200 then
-        return HttpService:JSONDecode(response.Body)
+    local url = Domain .. "yt/search?q=" .. encoded .. "&limit=10"
+    
+    print("🔍 Đang gọi API:", url)
+    
+    local success, response = pcall(function()
+        return Request({
+            Method = "GET",
+            Url = url,
+            Timeout = 5
+        })
+    end)
+    
+    if not success then
+        print("❌ Lỗi kết nối:", response)
+        return nil
     end
-    return nil
+    
+    if not response then
+        print("❌ Không có response")
+        return nil
+    end
+    
+    print("📡 Status:", response.StatusCode)
+    
+    if response.StatusCode == 200 then
+        local data = HttpService:JSONDecode(response.Body)
+        print("✅ Tìm thấy:", #data, "kết quả")
+        return data
+    else
+        print("❌ Status code:", response.StatusCode)
+        return nil
+    end
 end
 
 -- Tải video/audio
 local function RequestMedia(videoId, type)
     type = type or "video"
-    local response = Request({
-        Method = "POST",
-        Url = Domain .. "yt/" .. type .. "?videoId=" .. videoId,
-    })
-    if response and response.StatusCode == 404 then return false end
-    return response and response.Body or false
+    local url = Domain .. "yt/" .. type .. "?videoId=" .. videoId
+    
+    print("📥 Đang tải:", videoId, "type:", type)
+    
+    local success, response = pcall(function()
+        return Request({
+            Method = "POST",
+            Url = url,
+            Timeout = 30
+        })
+    end)
+    
+    if not success then
+        print("❌ Lỗi tải:", response)
+        return false
+    end
+    
+    if not response then
+        print("❌ Không có response")
+        return false
+    end
+    
+    if response.StatusCode == 404 then 
+        print("❌ Video không tồn tại")
+        return false 
+    end
+    
+    if response.StatusCode == 200 then
+        print("✅ Tải thành công, size:", #response.Body)
+        return response.Body
+    end
+    
+    print("❌ Status code:", response.StatusCode)
+    return false
 end
 
 -- Hiển thị kết quả
@@ -534,7 +571,7 @@ local function PlayVideo(videoId, videoData)
         NowPlaying.Text = "▶ " .. videoData.title
         NowPlaying.TextColor3 = Colors.Text
     else
-        NowPlaying.Text = "▶ Đang tải..."
+        NowPlaying.Text = "▶ Đang tải: " .. videoId
         NowPlaying.TextColor3 = Colors.Text
     end
     
@@ -554,6 +591,7 @@ local function PlayVideo(videoId, videoData)
         
         if data then
             writefile(path, data)
+            print("💾 Đã lưu:", path)
         else
             NowPlaying.Text = "❌ Lỗi tải video!"
             NowPlaying.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -592,22 +630,34 @@ SearchBtn.MouseButton1Click:Connect(function()
         return
     end
     
-    NowPlaying.Text = "🔍 Đang tìm: " .. query
+    NowPlaying.Text = "⏳ Đang tìm: " .. query
     NowPlaying.TextColor3 = Colors.TextDim
     
     local results = SearchYouTube(query)
+    
     if results and #results > 0 then
         queue = results
         queueIndex = 1
         DisplayResults(results)
         NowPlaying.Text = "✅ Tìm thấy " .. #results .. " kết quả"
         NowPlaying.TextColor3 = Color3.fromRGB(0, 200, 100)
-        task.wait(1.5)
+        task.wait(2)
         NowPlaying.Text = "Chọn video để phát"
         NowPlaying.TextColor3 = Colors.TextDim
     else
-        NowPlaying.Text = "❌ Không tìm thấy"
+        NowPlaying.Text = "❌ Không tìm thấy hoặc API lỗi. Kiểm tra console!"
         NowPlaying.TextColor3 = Color3.fromRGB(255, 50, 50)
+        
+        -- Load demo nếu API lỗi
+        local demo = {
+            {videoId = "dQw4w9WgXcQ", title = "Rick Astley - Never Gonna Give You Up (Demo)", channel = "Rick Astley", duration = "3:33"},
+            {videoId = "JGwWNGJdvx8", title = "Despacito - Luis Fonsi (Demo)", channel = "Luis Fonsi", duration = "4:41"},
+            {videoId = "fJ9rUzIMcZQ", title = "Queen - Bohemian Rhapsody (Demo)", channel = "Queen Official", duration = "5:55"},
+        }
+        queue = demo
+        queueIndex = 1
+        DisplayResults(demo)
+        print("📢 Đã load demo vì API không hoạt động")
     end
 end)
 
@@ -615,7 +665,7 @@ SearchBox.FocusLost:Connect(function(enter)
     if enter then SearchBtn.MouseButton1Click:Fire() end
 end)
 
--- ===== LOAD LINK/ID =====
+-- ===== LOAD LINK =====
 LoadBtn.MouseButton1Click:Connect(function()
     local input = LinkBox.Text
     if #input < 3 then
@@ -628,7 +678,7 @@ LoadBtn.MouseButton1Click:Connect(function()
     if videoId then
         NowPlaying.Text = "▶ Đang phát: " .. videoId
         NowPlaying.TextColor3 = Colors.Text
-        PlayVideo(videoId, {title = "Video: " .. videoId})
+        PlayVideo(videoId, {title = "Video ID: " .. videoId})
     else
         NowPlaying.Text = "❌ Không nhận diện được link"
         NowPlaying.TextColor3 = Color3.fromRGB(255, 50, 50)
@@ -789,11 +839,6 @@ queue = demo
 queueIndex = 1
 DisplayResults(demo)
 
-print("✅ YouTube Player Pro - Tổng hợp từ 2 code!")
-print("📱 Chức năng:")
-print("  🔍 Tìm kiếm video")
-print("  🔗 Dán link hoặc Video ID")
-print("  🎥 Xem video / 🎵 Nghe audio")
-print("  ⏮⏭ Next/Prev trong danh sách")
-print("  🔊 Kéo thanh volume")
-print("  🔁 Loop video")
+print("✅ YouTube Player Pro - Fix Loading!")
+print("📌 Nếu API lỗi, script vẫn hiển thị demo")
+print("📌 Xem console để biết lỗi chi tiết")
