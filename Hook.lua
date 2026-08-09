@@ -1,29 +1,37 @@
 -- ==========================================================
--- KIỂM TRA MÔI TRƯỜNG DELTA
+-- SCRIPT TEST ĐƠN GIẢN NHẤT
 -- ==========================================================
 
-print("=":rep(50))
-print("🔍 KIỂM TRA MÔI TRƯỜNG")
-print("=":rep(50))
+print("=== TEST ===")
 
-local tests = {
-    {name = "loadstring", func = function() return type(loadstring) end},
-    {name = "print", func = function() return type(print) end},
-    {name = "pcall", func = function() return type(pcall) end},
-    {name = "game:HttpGet", func = function() return type(game.HttpGet) or type(game:HttpGet) end},
-    {name = "writefile", func = function() return type(writefile) end},
-    {name = "setclipboard", func = function() return type(setclipboard) end},
-    {name = "debug", func = function() return type(debug) end},
-    {name = "_G", func = function() return type(_G) end},
-}
-
-for _, test in ipairs(tests) do
-    local ok, result = pcall(test.func)
-    if ok then
-        print("  " .. test.name .. ": " .. tostring(result))
-    else
-        print("  " .. test.name .. ": ERROR - " .. tostring(result))
-    end
+-- 1. Kiểm tra loadstring
+local testCode = "print('Hello')"
+local fn = loadstring(testCode)
+if fn then
+    pcall(fn)
+    print("✅ loadstring hoạt động")
+else
+    print("❌ loadstring không hoạt động")
 end
 
-print("=":rep(50))
+-- 2. Kiểm tra writefile
+if writefile then
+    pcall(function()
+        writefile("test.txt", "Hello from Delta!")
+        print("✅ writefile hoạt động")
+    end)
+else
+    print("❌ writefile không có")
+end
+
+-- 3. Kiểm tra setclipboard
+if setclipboard then
+    pcall(function()
+        setclipboard("Hello")
+        print("✅ setclipboard hoạt động")
+    end)
+else
+    print("❌ setclipboard không có")
+end
+
+print("=== KẾT THÚC ===")
