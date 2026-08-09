@@ -1,6 +1,6 @@
 --[[
-    YouTube Player Pro - Mobile Edition
-    Đẹp, responsive, kéo được, search thật
+    YouTube Player Pro - Mobile Fixed
+    Sửa lỗi touch, UI lên khi bấm nút
 ]]
 
 local player = game.Players.LocalPlayer
@@ -44,7 +44,7 @@ local Colors = {
     TextDark = Color3.fromRGB(100, 100, 110),
 }
 
--- ===== NÚT MỞ MENU (ĐẸP) =====
+-- ===== NÚT MỞ MENU =====
 local FloatBtn = Instance.new("ImageButton")
 FloatBtn.Parent = ScreenGui
 FloatBtn.Size = UDim2.new(0, 65, 0, 65)
@@ -56,7 +56,6 @@ FloatBtn.ImageColor3 = Color3.fromRGB(255, 255, 255)
 FloatBtn.ScaleType = Enum.ScaleType.Fit
 FloatBtn.ZIndex = 999
 
--- Shadow
 local FloatShadow = Instance.new("ImageLabel")
 FloatShadow.Parent = FloatBtn
 FloatShadow.Size = UDim2.new(1.3, 0, 1.3, 0)
@@ -72,7 +71,6 @@ local FloatCorner = Instance.new("UICorner")
 FloatCorner.Parent = FloatBtn
 FloatCorner.CornerRadius = UDim.new(1, 0)
 
--- Badge "▶" trên nút
 local PlayBadge = Instance.new("TextLabel")
 PlayBadge.Parent = FloatBtn
 PlayBadge.Size = UDim2.new(0.5, 0, 0.5, 0)
@@ -102,7 +100,6 @@ local WinCorner = Instance.new("UICorner")
 WinCorner.Parent = MainWindow
 WinCorner.CornerRadius = UDim.new(0, 16)
 
--- Drop shadow
 local WinShadow = Instance.new("ImageLabel")
 WinShadow.Parent = MainWindow
 WinShadow.Size = UDim2.new(1.1, 0, 1.1, 0)
@@ -140,13 +137,10 @@ UserInputService.InputChanged:Connect(function(input)
         local delta = input.Position - dragStart
         local newX = startPos.X.Offset + delta.X
         local newY = startPos.Y.Offset + delta.Y
-        
-        -- Giới hạn trong màn hình
         local maxX = screenSize.X - winWidth
         local maxY = screenSize.Y - winHeight
         newX = math.clamp(newX, 0, maxX)
         newY = math.clamp(newY, 0, maxY)
-        
         MainWindow.Position = UDim2.new(0, newX, 0, newY)
     end
 end)
@@ -163,7 +157,6 @@ local TitleCorner = Instance.new("UICorner")
 TitleCorner.Parent = TitleBar
 TitleCorner.CornerRadius = UDim.new(0, 16)
 
--- Title
 local TitleText = Instance.new("TextLabel")
 TitleText.Parent = TitleBar
 TitleText.Size = UDim2.new(0.6, 0, 1, 0)
@@ -175,7 +168,6 @@ TitleText.TextSize = 17
 TitleText.Font = Enum.Font.GothamBold
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 
--- Close
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Parent = TitleBar
 CloseBtn.Size = UDim2.new(0, 50, 1, 0)
@@ -185,11 +177,9 @@ CloseBtn.Text = "✕"
 CloseBtn.TextColor3 = Colors.TextDim
 CloseBtn.TextSize = 20
 CloseBtn.Font = Enum.Font.GothamBold
+
+-- Dùng MouseButton1Click cho Close
 CloseBtn.MouseButton1Click:Connect(function()
-    MainWindow.Visible = false
-    PlayBadge.Text = "▶"
-end)
-CloseBtn.TouchTap:Connect(function()
     MainWindow.Visible = false
     PlayBadge.Text = "▶"
 end)
@@ -294,7 +284,6 @@ AudioFrame.Size = UDim2.new(1, 0, 1, 0)
 AudioFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 AudioFrame.Visible = false
 
--- Audio visualizer đẹp
 local AudioIcon = Instance.new("TextLabel")
 AudioIcon.Parent = AudioFrame
 AudioIcon.Size = UDim2.new(1, 0, 0.6, 0)
@@ -450,7 +439,6 @@ local function DisplayResults(results)
         btn.BackgroundTransparency = 1
         btn.Text = ""
         
-        -- Title
         local title = Instance.new("TextLabel")
         title.Parent = item
         title.Size = UDim2.new(0.7, -10, 0.5, 0)
@@ -464,7 +452,6 @@ local function DisplayResults(results)
         title.TextWrapped = true
         title.TextTruncate = Enum.TextTruncate.AtEnd
         
-        -- Channel
         local channel = Instance.new("TextLabel")
         channel.Parent = item
         channel.Size = UDim2.new(0.6, -10, 0.3, 0)
@@ -476,7 +463,6 @@ local function DisplayResults(results)
         channel.Font = Enum.Font.Gotham
         channel.TextXAlignment = Enum.TextXAlignment.Left
         
-        -- Duration
         local duration = Instance.new("TextLabel")
         duration.Parent = item
         duration.Size = UDim2.new(0.2, 0, 0.3, 0)
@@ -488,11 +474,8 @@ local function DisplayResults(results)
         duration.Font = Enum.Font.Gotham
         duration.TextXAlignment = Enum.TextXAlignment.Right
         
-        -- Click
+        -- Dùng MouseButton1Click (hoạt động trên cả touch)
         btn.MouseButton1Click:Connect(function()
-            PlayVideo(video.videoId, video)
-        end)
-        btn.TouchTap:Connect(function()
             PlayVideo(video.videoId, video)
         end)
         
@@ -598,10 +581,6 @@ SearchBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-SearchBtn.TouchTap:Connect(function()
-    SearchBtn.MouseButton1Click:Fire()
-end)
-
 SearchBox.FocusLost:Connect(function(enter)
     if enter then
         SearchBtn.MouseButton1Click:Fire()
@@ -619,10 +598,6 @@ ModeVid.MouseButton1Click:Connect(function()
     AudioFrame.Visible = false
 end)
 
-ModeVid.TouchTap:Connect(function()
-    ModeVid.MouseButton1Click:Fire()
-end)
-
 ModeAud.MouseButton1Click:Connect(function()
     currentMode = "audio"
     ModeAud.BackgroundColor3 = Colors.Primary
@@ -631,10 +606,6 @@ ModeAud.MouseButton1Click:Connect(function()
     ModeVid.TextColor3 = Colors.TextDim
     VideoPlayer.Visible = false
     AudioFrame.Visible = true
-end)
-
-ModeAud.TouchTap:Connect(function()
-    ModeAud.MouseButton1Click:Fire()
 end)
 
 -- ===== CONTROLS =====
@@ -669,10 +640,6 @@ PlayBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-PlayBtn.TouchTap:Connect(function()
-    PlayBtn.MouseButton1Click:Fire()
-end)
-
 LoopBtn.MouseButton1Click:Connect(function()
     isLooping = not isLooping
     LoopBtn.TextColor3 = isLooping and Colors.Primary or Colors.Text
@@ -681,10 +648,6 @@ LoopBtn.MouseButton1Click:Connect(function()
     else
         if soundInst then soundInst.Looped = isLooping end
     end
-end)
-
-LoopBtn.TouchTap:Connect(function()
-    LoopBtn.MouseButton1Click:Fire()
 end)
 
 -- ===== TIMELINE =====
@@ -714,18 +677,10 @@ Timeline.InputBegan:Connect(function(input)
     end
 end)
 
--- ===== FLOATING BUTTON =====
+-- ===== FLOATING BUTTON (DÙNG MouseButton1Click) =====
 local menuOpen = false
 
 FloatBtn.MouseButton1Click:Connect(function()
-    menuOpen = not menuOpen
-    MainWindow.Visible = menuOpen
-    if not menuOpen then
-        PlayBadge.Text = "▶"
-    end
-end)
-
-FloatBtn.TouchTap:Connect(function()
     menuOpen = not menuOpen
     MainWindow.Visible = menuOpen
     if not menuOpen then
@@ -769,10 +724,5 @@ DisplayResults({
     {videoId = "fJ9rUzIMcZQ", title = "Queen - Bohemian Rhapsody", channel = "Queen Official", duration = "5:55"},
 })
 
-print("✅ YouTube Player Pro - Mobile Edition")
-print("📱 Tính năng:")
-print("  • 🔴 Nút đỏ nổi - chạm để mở/đóng")
-print("  • 🔍 Tìm kiếm YouTube thật")
-print("  • 🎥 Video / 🎵 Audio")
-print("  • 👆 Kéo thả được window và nút")
-print("  • 📱 Responsive theo màn hình")
+print("✅ YouTube Player Pro - Mobile Fixed!")
+print("📱 Chạm vào nút đỏ để mở menu")
