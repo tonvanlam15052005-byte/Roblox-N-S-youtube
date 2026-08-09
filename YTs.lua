@@ -1,339 +1,225 @@
 -- ==========================================================
--- AUDIOPLAYER - BẢN DÙNG GAME:HTTPGET
--- KHÔNG DÙNG request, syn.request, http.request
+-- AUDIOPLAYER - BẢN TỐI GIẢN
+-- CHỈ DÙNG HÀM CHẮC CHẮN CÓ
 -- ==========================================================
 
-local UserInputService = game:GetService("UserInputService")
-local InsertService = game:GetService("InsertService")
-local HttpService = game:GetService("HttpService")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
+print("=":rep(50))
+print("🎵 AUDIOPLAYER - BẢN TỐI GIẢN")
+print("=":rep(50))
 
 -- ==========================================================
--- KIỂM TRA HÀM HỖ TRỢ
+-- 1. KIỂM TRA TỪNG BƯỚC
 -- ==========================================================
-local hasHttpGet = type(game.HttpGet) == "function" or type(game:HttpGet) == "function"
-local hasWritefile = type(writefile) == "function"
-local hasMakefolder = type(makefolder) == "function"
-local hasGetcustomasset = type(getcustomasset) == "function" or type(getsynasset) == "function"
 
-print("📌 Kiểm tra hỗ trợ:")
-print("  game:HttpGet: " .. tostring(hasHttpGet))
-print("  writefile: " .. tostring(hasWritefile))
-print("  makefolder: " .. tostring(hasMakefolder))
-print("  getcustomasset: " .. tostring(hasGetcustomasset))
-
-if not hasHttpGet then
-    print("❌ game:HttpGet không được hỗ trợ!")
+-- Kiểm tra game
+if not game then
+    print("❌ game không tồn tại!")
     return
 end
+print("✅ game OK")
 
--- ==========================================================
--- HÀM GỌI HTTP (DÙNG GAME:HTTPGET)
--- ==========================================================
-local function httpGet(url)
-    -- Thử các cách khác nhau để gọi
-    if type(game.HttpGet) == "function" then
-        return game:HttpGet(url)
-    elseif type(game:HttpGet) == "function" then
-        return game:HttpGet(url)
-    else
-        error("Không có hàm HttpGet")
+-- Kiểm tra Players
+local Players = game:GetService("Players")
+if not Players then
+    print("❌ Players không tồn tại!")
+    return
+end
+print("✅ Players OK")
+
+-- Kiểm tra LocalPlayer
+local Player = Players.LocalPlayer
+if not Player then
+    print("❌ LocalPlayer không tồn tại! Chờ 1 giây...")
+    wait(1)
+    Player = Players.LocalPlayer
+    if not Player then
+        print("❌ Vẫn không có LocalPlayer!")
+        return
     end
 end
+print("✅ LocalPlayer: " .. Player.Name)
 
--- ==========================================================
--- HÀM LẤY CUSTOM ASSET
--- ==========================================================
-local function getAsset(path)
-    if type(getcustomasset) == "function" then
-        return getcustomasset(path)
-    elseif type(getsynasset) == "function" then
-        return getsynasset(path)
-    else
-        return path
-    end
+-- Kiểm tra HttpService
+local HttpService = game:GetService("HttpService")
+if not HttpService then
+    print("❌ HttpService không tồn tại!")
+    return
 end
+print("✅ HttpService OK")
+
+-- Kiểm tra CoreGui
+local CoreGui = game:GetService("CoreGui")
+if not CoreGui then
+    print("❌ CoreGui không tồn tại!")
+    return
+end
+print("✅ CoreGui OK")
 
 -- ==========================================================
--- TẠO UI (NẾU CHƯA CÓ ASSET, TỰ TẠO)
+-- 2. TẠO UI ĐƠN GIẢN
 -- ==========================================================
+
 print("🔧 Đang tạo UI...")
 
 -- Tạo ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AudioPlayer"
 ScreenGui.Parent = Player.PlayerGui or CoreGui
+print("✅ ScreenGui created")
 
--- Tạo Panel Button (trên thanh công cụ)
-local PanelButton = Instance.new("ImageButton")
-PanelButton.Size = UDim2.new(0, 30, 0, 30)
-PanelButton.Position = UDim2.new(0, 10, 0, 5)
-PanelButton.BackgroundTransparency = 1
-PanelButton.Image = "rbxassetid://6026663699"
-PanelButton.Parent = CoreGui:FindFirstChild("ThemeProvider") and CoreGui.ThemeProvider.TopBarFrame.LeftFrame or ScreenGui
+-- Tạo Frame chính
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 300, 0, 200)
+Frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+Frame.BorderSizePixel = 0
+Frame.BackgroundTransparency = 0.05
+Frame.Parent = ScreenGui
+print("✅ Frame created")
 
--- Tạo cửa sổ chính
-local Window = Instance.new("Frame")
-Window.Size = UDim2.new(0, 350, 0, 250)
-Window.Position = UDim2.new(0.5, -175, 0.5, -125)
-Window.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-Window.BorderSizePixel = 0
-Window.BackgroundTransparency = 0.1
-Window.Visible = false
-Window.Parent = ScreenGui
-
--- Tiêu đề (dùng để kéo thả)
-local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 30)
-TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-TitleBar.BorderSizePixel = 0
-TitleBar.Parent = Window
-
+-- Tiêu đề
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -30, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 Title.Text = "🎵 Audio Player"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 14
+Title.TextSize = 16
 Title.Font = Enum.Font.GothamBold
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TitleBar
+Title.Parent = Frame
 
--- Nút đóng
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -30, 0, 0)
-CloseBtn.BackgroundTransparency = 1
-CloseBtn.Text = "✕"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-CloseBtn.TextSize = 16
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.Parent = TitleBar
-CloseBtn.MouseButton1Click:Connect(function()
-    Window.Visible = false
-end)
-
--- Ô nhập Video ID
-local VidInput = Instance.new("TextBox")
-VidInput.Size = UDim2.new(0.65, -10, 0, 30)
-VidInput.Position = UDim2.new(0, 10, 0, 40)
-VidInput.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-VidInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-VidInput.TextSize = 14
-VidInput.Font = Enum.Font.GothamMedium
-VidInput.PlaceholderText = "Nhập Video ID YouTube..."
-VidInput.ClearTextOnFocus = false
-VidInput.Parent = Window
+-- Ô nhập
+local InputBox = Instance.new("TextBox")
+InputBox.Size = UDim2.new(0.7, -5, 0, 30)
+InputBox.Position = UDim2.new(0, 5, 0, 40)
+InputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputBox.TextSize = 14
+InputBox.Font = Enum.Font.GothamMedium
+InputBox.PlaceholderText = "Video ID..."
+InputBox.Parent = Frame
 
 -- Nút tải
 local LoadBtn = Instance.new("TextButton")
-LoadBtn.Size = UDim2.new(0.25, -10, 0, 30)
-LoadBtn.Position = UDim2.new(0.7, 5, 0, 40)
-LoadBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-LoadBtn.Text = "Tải"
+LoadBtn.Size = UDim2.new(0.25, -5, 0, 30)
+LoadBtn.Position = UDim2.new(0.75, 0, 0, 40)
+LoadBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+LoadBtn.Text = "▶️ Tải"
 LoadBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 LoadBtn.TextSize = 14
 LoadBtn.Font = Enum.Font.GothamBold
-LoadBtn.Parent = Window
+LoadBtn.Parent = Frame
 
--- Thanh tiến trình
-local Playback = Instance.new("Frame")
-Playback.Size = UDim2.new(1, -20, 0, 30)
-Playback.Position = UDim2.new(0, 10, 0, 80)
-Playback.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-Playback.BorderSizePixel = 0
-Playback.Parent = Window
-
-local PlaybackFill = Instance.new("Frame")
-PlaybackFill.Size = UDim2.new(0, 0, 1, 0)
-PlaybackFill.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
-PlaybackFill.BorderSizePixel = 0
-PlaybackFill.Parent = Playback
-
--- Thời gian
-local TimeText = Instance.new("TextLabel")
-TimeText.Size = UDim2.new(1, -20, 0, 20)
-TimeText.Position = UDim2.new(0, 10, 0, 115)
-TimeText.BackgroundTransparency = 1
-TimeText.Text = "00:00 / 00:00"
-TimeText.TextColor3 = Color3.fromRGB(200, 200, 200)
-TimeText.TextSize = 12
-TimeText.Font = Enum.Font.GothamMedium
-TimeText.Parent = Window
+-- Trạng thái
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1, -10, 0, 25)
+Status.Position = UDim2.new(0, 5, 0, 80)
+Status.BackgroundTransparency = 1
+Status.Text = "Nhập Video ID để tải"
+Status.TextColor3 = Color3.fromRGB(150, 150, 150)
+Status.TextSize = 12
+Status.Font = Enum.Font.GothamMedium
+Status.Parent = Frame
 
 -- Nút điều khiển
-local ControlFrame = Instance.new("Frame")
-ControlFrame.Size = UDim2.new(1, -20, 0, 40)
-ControlFrame.Position = UDim2.new(0, 10, 0, 140)
-ControlFrame.BackgroundTransparency = 1
-ControlFrame.Parent = Window
-
--- Play/Pause
 local PlayBtn = Instance.new("TextButton")
-PlayBtn.Size = UDim2.new(0, 50, 0, 35)
-PlayBtn.Position = UDim2.new(0.5, -75, 0, 0)
-PlayBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+PlayBtn.Size = UDim2.new(0, 60, 0, 35)
+PlayBtn.Position = UDim2.new(0.5, -90, 0, 115)
+PlayBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
 PlayBtn.Text = "▶️"
 PlayBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 PlayBtn.TextSize = 20
 PlayBtn.Font = Enum.Font.GothamBold
-PlayBtn.Parent = ControlFrame
+PlayBtn.Parent = Frame
 
--- Stop
 local StopBtn = Instance.new("TextButton")
-StopBtn.Size = UDim2.new(0, 50, 0, 35)
-StopBtn.Position = UDim2.new(0.5, -20, 0, 0)
-StopBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+StopBtn.Size = UDim2.new(0, 60, 0, 35)
+StopBtn.Position = UDim2.new(0.5, -25, 0, 115)
+StopBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
 StopBtn.Text = "⏹️"
 StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 StopBtn.TextSize = 20
 StopBtn.Font = Enum.Font.GothamBold
-StopBtn.Parent = ControlFrame
+StopBtn.Parent = Frame
 
--- Repeat
-local RepeatBtn = Instance.new("TextButton")
-RepeatBtn.Size = UDim2.new(0, 50, 0, 35)
-RepeatBtn.Position = UDim2.new(0.5, 35, 0, 0)
-RepeatBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-RepeatBtn.Text = "🔁"
-RepeatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-RepeatBtn.TextSize = 20
-RepeatBtn.Font = Enum.Font.GothamBold
-RepeatBtn.Parent = ControlFrame
-
--- Volume slider
-local VolFrame = Instance.new("Frame")
-VolFrame.Size = UDim2.new(0, 100, 0, 20)
-VolFrame.Position = UDim2.new(1, -110, 1, -25)
-VolFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-VolFrame.BorderSizePixel = 0
-VolFrame.Parent = Window
-
-local VolFill = Instance.new("Frame")
-VolFill.Size = UDim2.new(0.5, 0, 1, 0)
-VolFill.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
-VolFill.BorderSizePixel = 0
-VolFill.Parent = VolFrame
-
-local VolLabel = Instance.new("TextLabel")
-VolLabel.Size = UDim2.new(0, 30, 1, 0)
-VolLabel.Position = UDim2.new(1, 2, 0, 0)
-VolLabel.BackgroundTransparency = 1
-VolLabel.Text = "50%"
-VolLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-VolLabel.TextSize = 10
-VolLabel.Font = Enum.Font.GothamMedium
-VolLabel.Parent = VolFrame
+-- Nút đóng
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -30, 0, 2)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+CloseBtn.TextSize = 14
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Parent = Frame
 
 -- ==========================================================
--- SOUND OBJECT
+-- 3. SOUND OBJECT
 -- ==========================================================
 local Sound = Instance.new("Sound")
 Sound.Volume = 0.5
-Sound.Parent = Window
+Sound.Parent = Frame
+print("✅ Sound created")
 
 -- ==========================================================
--- BIẾN ĐIỀU KHIỂN
+-- 4. BIẾN
 -- ==========================================================
 local isPlaying = false
-local isLooped = false
-local isDragging = false
-local isDraggingVol = false
-local currentVideoId = ""
+local currentId = ""
 
 -- ==========================================================
--- HÀM CẬP NHẬT
--- ==========================================================
-local function updateTime()
-    local pos = Sound.TimePosition
-    local len = Sound.TimeLength
-    if len == 0 then return end
-    
-    local function format(t)
-        return string.format("%02i:%02i", t / 60 % 60, t % 60)
-    end
-    
-    TimeText.Text = format(pos) .. " / " .. format(len)
-    PlaybackFill.Size = UDim2.new(pos / len, 0, 1, 0)
-end
-
--- ==========================================================
--- HÀM TẢI AUDIO
+-- 5. HÀM TẢI AUDIO
 -- ==========================================================
 local function loadAudio(videoId)
-    if not videoId or videoId == "" then return end
-    
-    VidInput.PlaceholderText = "Đang tải..."
-    VidInput.Text = ""
-    
-    -- Kiểm tra file đã có chưa
-    local filePath = "audios/" .. videoId .. ".mp3"
-    
-    if hasWritefile and not isfile(filePath) then
-        -- Tải từ API
-        local url = "https://api.vevioz.com/api/button/mp3/https://www.youtube.com/watch?v=" .. videoId
-        
-        local success, response = pcall(function()
-            return httpGet(url)
-        end)
-        
-        if success and response then
-            local data = HttpService:JSONDecode(response)
-            if data and data.download_url then
-                -- Tải file MP3
-                local audioSuccess, audioData = pcall(function()
-                    return httpGet(data.download_url)
-                end)
-                
-                if audioSuccess and audioData then
-                    if hasMakefolder then
-                        pcall(makefolder, "audios")
-                    end
-                    if hasWritefile then
-                        writefile(filePath, audioData)
-                        print("💾 Đã lưu: " .. filePath)
-                    end
-                end
-            end
-        end
+    if not videoId or videoId == "" then
+        Status.Text = "⚠️ Vui lòng nhập Video ID"
+        return
     end
     
-    -- Phát audio
-    local soundId
-    if hasWritefile and isfile(filePath) and hasGetcustomasset then
-        soundId = getAsset(filePath)
+    Status.Text = "⏳ Đang tải: " .. videoId
+    print("🎯 Đang tải video: " .. videoId)
+    
+    -- Dùng API vevioz
+    local url = "https://api.vevioz.com/api/button/mp3/https://www.youtube.com/watch?v=" .. videoId
+    
+    local success, response = pcall(function()
+        return game:HttpGet(url)
+    end)
+    
+    if not success then
+        Status.Text = "❌ Lỗi kết nối: " .. tostring(response)
+        print("❌ Lỗi: " .. tostring(response))
+        return
+    end
+    
+    local data = HttpService:JSONDecode(response)
+    
+    if data and data.download_url then
+        currentId = videoId
+        Sound.SoundId = data.download_url
+        Sound:Play()
+        isPlaying = true
+        PlayBtn.Text = "⏸️"
+        Status.Text = "▶️ Đang phát: " .. videoId
+        print("✅ Đang phát: " .. videoId)
     else
-        -- Fallback: dùng link trực tiếp (có thể không hoạt động)
-        soundId = "https://api.vevioz.com/api/button/mp3/https://www.youtube.com/watch?v=" .. videoId
+        Status.Text = "❌ Không tìm thấy audio"
+        print("❌ Không tìm thấy audio cho: " .. videoId)
     end
-    
-    Sound.SoundId = soundId
-    currentVideoId = videoId
-    VidInput.PlaceholderText = "Video ID"
-    
-    -- Phát
-    Sound:Play()
-    isPlaying = true
-    PlayBtn.Text = "⏸️"
 end
 
 -- ==========================================================
--- SỰ KIỆN
+-- 6. SỰ KIỆN
 -- ==========================================================
 
--- Nút tải
+-- Tải
 LoadBtn.MouseButton1Click:Connect(function()
-    loadAudio(VidInput.Text)
+    loadAudio(InputBox.Text)
 end)
 
 -- Enter
-VidInput.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        loadAudio(VidInput.Text)
+InputBox.FocusLost:Connect(function(enter)
+    if enter then
+        loadAudio(InputBox.Text)
     end
 end)
 
@@ -343,10 +229,12 @@ PlayBtn.MouseButton1Click:Connect(function()
         Sound:Pause()
         isPlaying = false
         PlayBtn.Text = "▶️"
+        Status.Text = "⏸️ Tạm dừng"
     else
         Sound:Resume()
         isPlaying = true
         PlayBtn.Text = "⏸️"
+        Status.Text = "▶️ Đang phát: " .. currentId
     end
 end)
 
@@ -355,109 +243,55 @@ StopBtn.MouseButton1Click:Connect(function()
     Sound:Stop()
     isPlaying = false
     PlayBtn.Text = "▶️"
-    PlaybackFill.Size = UDim2.new(0, 0, 1, 0)
-    TimeText.Text = "00:00 / 00:00"
+    Status.Text = "⏹️ Đã dừng"
 end)
 
--- Repeat
-RepeatBtn.MouseButton1Click:Connect(function()
-    isLooped = not isLooped
-    Sound.Looped = isLooped
-    RepeatBtn.Text = isLooped and "🔁" or "🔁"
-    RepeatBtn.BackgroundColor3 = isLooped and Color3.fromRGB(255, 200, 50) or Color3.fromRGB(60, 60, 70)
+-- Close
+CloseBtn.MouseButton1Click:Connect(function()
+    Frame.Visible = not Frame.Visible
 end)
 
--- Update time
+-- Khi sound kết thúc
 Sound.Stopped:Connect(function()
     isPlaying = false
     PlayBtn.Text = "▶️"
+    Status.Text = "⏹️ Đã dừng"
 end)
 
 -- ==========================================================
--- VOLUME SLIDER
+-- 7. PHÍM TẮT
 -- ==========================================================
-VolFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        isDraggingVol = true
-        local mouse = Player:GetMouse()
-        local pos = VolFrame.AbsolutePosition.X
-        local size = VolFrame.AbsoluteSize.X
-        local percent = math.clamp((mouse.X - pos) / size, 0, 1)
-        Sound.Volume = percent
-        VolFill.Size = UDim2.new(percent, 0, 1, 0)
-        VolLabel.Text = math.floor(percent * 100) .. "%"
-    end
-end)
+local UIS = game:GetService("UserInputService")
 
-Player:GetMouse().Move:Connect(function()
-    if isDraggingVol then
-        local mouse = Player:GetMouse()
-        local pos = VolFrame.AbsolutePosition.X
-        local size = VolFrame.AbsoluteSize.X
-        local percent = math.clamp((mouse.X - pos) / size, 0, 1)
-        Sound.Volume = percent
-        VolFill.Size = UDim2.new(percent, 0, 1, 0)
-        VolLabel.Text = math.floor(percent * 100) .. "%"
-    end
-end)
-
-VolFrame.InputEnded:Connect(function()
-    isDraggingVol = false
-end)
-
--- ==========================================================
--- PANEL BUTTON
--- ==========================================================
-PanelButton.MouseButton1Click:Connect(function()
-    Window.Visible = not Window.Visible
-end)
-
--- ==========================================================
--- KÉO THẢ WINDOW
--- ==========================================================
-local dragStart, dragPos
-
-TitleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragStart = input.Position
-        dragPos = Window.Position
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragStart and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        Window.Position = UDim2.new(dragPos.X.Scale, dragPos.X.Offset + delta.X, dragPos.Y.Scale, dragPos.Y.Offset + delta.Y)
-    end
-end)
-
-TitleBar.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragStart = nil
-        dragPos = nil
+UIS.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    
+    if input.KeyCode == Enum.KeyCode.Space then
+        if isPlaying then
+            Sound:Pause()
+            isPlaying = false
+            PlayBtn.Text = "▶️"
+            Status.Text = "⏸️ Tạm dừng"
+        else
+            Sound:Resume()
+            isPlaying = true
+            PlayBtn.Text = "⏸️"
+            Status.Text = "▶️ Đang phát: " .. currentId
+        end
     end
 end)
 
 -- ==========================================================
--- UPDATE LOOP
--- ==========================================================
-RunService.RenderStepped:Connect(function()
-    if Sound.IsPlaying then
-        updateTime()
-    end
-end)
-
--- ==========================================================
--- THÔNG BÁO
+-- 8. THÔNG BÁO
 -- ==========================================================
 print("=":rep(50))
-print("🎵 AUDIOPLAYER ĐÃ SẴN SÀNG!")
+print("✅ AUDIOPLAYER ĐÃ SẴN SÀNG!")
 print("=":rep(50))
 print("📌 HƯỚNG DẪN:")
-print("  1. Tìm Video ID từ YouTube")
+print("  1. Lấy Video ID từ YouTube")
+print("     Ví dụ: https://youtu.be/ABC123 → ID là ABC123")
 print("  2. Paste vào ô → Enter")
-print("  3. Thưởng thức nhạc!")
+print("  3. Thưởng thức!")
 print("=":rep(50))
-print("⌨️ PHÍM TẮT:")
-print("  Space → Play/Pause")
+print("⌨️ Phím Space: Play/Pause")
 print("=":rep(50))
