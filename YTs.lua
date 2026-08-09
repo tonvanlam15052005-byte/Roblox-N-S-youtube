@@ -1,16 +1,13 @@
 --[[
-    YouTube Pro Player V2.3 - Mobile Fixed
-    Dành cho Delta Executor trên điện thoại
-    Fix lỗi nil và touch
+    YouTube Player - Mobile
+    Đơn giản, không lỗi
 ]]
 
-local UserInputService = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
 
--- ===== CONFIG =====
+-- ===== REQUEST =====
 local Request = request or (http and http.request) or (syn and syn.request)
 local GetAsset = getcustomasset or getsynasset
 local Domain = "https://parvus.fun/"
@@ -20,501 +17,365 @@ if not isfolder("youtube_media") then makefolder("youtube_media") end
 if not isfolder("youtube_media/videos") then makefolder("youtube_media/videos") end
 if not isfolder("youtube_media/audios") then makefolder("youtube_media/audios") end
 
--- ===== TẠO SCREENGUI =====
-local player = Players.LocalPlayer
+-- ===== TẠO GUI =====
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "YouTubeProPlayer"
-ScreenGui.Parent = player:WaitForChild("PlayerGui")
+ScreenGui.Parent = player.PlayerGui
 ScreenGui.ResetOnSpawn = false
-ScreenGui.DisplayOrder = 999
 
--- ===== TẠO NÚT MỞ MENU (Floating Button) =====
-local FloatingButton = Instance.new("TextButton")
-FloatingButton.Name = "OpenMenuButton"
-FloatingButton.Parent = ScreenGui
-FloatingButton.Size = UDim2.new(0, 65, 0, 65)
-FloatingButton.Position = UDim2.new(0.85, -35, 0.88, 0)
-FloatingButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-FloatingButton.BorderSizePixel = 0
-FloatingButton.Text = "▶"
-FloatingButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-FloatingButton.TextSize = 30
-FloatingButton.Font = Enum.Font.GothamBold
-FloatingButton.ZIndex = 999
+-- ===== NÚT MỞ MENU =====
+local FloatBtn = Instance.new("TextButton")
+FloatBtn.Parent = ScreenGui
+FloatBtn.Size = UDim2.new(0, 60, 0, 60)
+FloatBtn.Position = UDim2.new(0.85, -30, 0.85, 0)
+FloatBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+FloatBtn.Text = "▶"
+FloatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FloatBtn.TextSize = 28
+FloatBtn.Font = Enum.Font.GothamBold
+FloatBtn.BorderSizePixel = 0
 
--- Shadow
-local ButtonShadow = Instance.new("ImageLabel")
-ButtonShadow.Parent = FloatingButton
-ButtonShadow.Size = UDim2.new(1.2, 0, 1.2, 0)
-ButtonShadow.Position = UDim2.new(-0.1, 0, -0.1, 0)
-ButtonShadow.BackgroundTransparency = 1
-ButtonShadow.Image = "rbxassetid://131599993"
-ButtonShadow.ImageTransparency = 0.7
-ButtonShadow.ScaleType = Enum.ScaleType.Slice
-ButtonShadow.SliceCenter = Rect.new(10, 10, 10, 10)
-ButtonShadow.ZIndex = 0
+local Corner = Instance.new("UICorner")
+Corner.Parent = FloatBtn
+Corner.CornerRadius = UDim.new(1, 0)
 
--- Circle clip
-local Clip = Instance.new("UICorner")
-Clip.Parent = FloatingButton
-Clip.CornerRadius = UDim.new(1, 0)
+-- ===== TẠO WINDOW =====
+local MainWindow = Instance.new("Frame")
+MainWindow.Parent = ScreenGui
+MainWindow.Size = UDim2.new(0, 350, 0, 500)
+MainWindow.Position = UDim2.new(0.5, -175, 0.5, -250)
+MainWindow.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainWindow.BorderSizePixel = 0
+MainWindow.Visible = false
 
--- ===== STYLES =====
-local Theme = {
-    Background = Color3.fromRGB(18, 18, 18),
-    Surface = Color3.fromRGB(30, 30, 30),
-    Surface2 = Color3.fromRGB(40, 40, 40),
-    Primary = Color3.fromRGB(255, 0, 0),
-    PrimaryDark = Color3.fromRGB(200, 0, 0),
-    Text = Color3.fromRGB(255, 255, 255),
-    TextDim = Color3.fromRGB(150, 150, 150),
-    Accent = Color3.fromRGB(0, 150, 255),
-}
+local WindowCorner = Instance.new("UICorner")
+WindowCorner.Parent = MainWindow
+WindowCorner.CornerRadius = UDim.new(0, 10)
 
--- ===== HELPER FUNCTIONS =====
-local function CreateUI(class, props)
-    local obj = Instance.new(class)
-    for k, v in pairs(props or {}) do
-        if k == "Parent" then continue end
-        obj[k] = v
-    end
-    return obj
+-- ===== TITLE =====
+local TitleBar = Instance.new("Frame")
+TitleBar.Parent = MainWindow
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+TitleBar.BorderSizePixel = 0
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Parent = TitleBar
+TitleText.Size = UDim2.new(0.7, 0, 1, 0)
+TitleText.Position = UDim2.new(0, 10, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "🎬 YouTube Player"
+TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleText.TextSize = 14
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Parent = TitleBar
+CloseBtn.Size = UDim2.new(0, 40, 1, 0)
+CloseBtn.Position = UDim2.new(1, -40, 0, 0)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+CloseBtn.TextSize = 18
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.MouseButton1Click:Connect(function()
+    MainWindow.Visible = false
+end)
+
+-- ===== SEARCH =====
+local SearchFrame = Instance.new("Frame")
+SearchFrame.Parent = MainWindow
+SearchFrame.Size = UDim2.new(1, 0, 0, 50)
+SearchFrame.Position = UDim2.new(0, 0, 0, 40)
+SearchFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+SearchFrame.BorderSizePixel = 0
+
+local SearchBox = Instance.new("TextBox")
+SearchBox.Parent = SearchFrame
+SearchBox.Size = UDim2.new(0.6, -10, 0, 35)
+SearchBox.Position = UDim2.new(0, 10, 0, 7)
+SearchBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+SearchBox.BorderSizePixel = 0
+SearchBox.PlaceholderText = "🔍 Tìm video..."
+SearchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+SearchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+SearchBox.TextSize = 14
+SearchBox.Font = Enum.Font.Gotham
+SearchBox.ClearTextOnFocus = false
+
+local SearchBtn = Instance.new("TextButton")
+SearchBtn.Parent = SearchFrame
+SearchBtn.Size = UDim2.new(0, 70, 0, 35)
+SearchBtn.Position = UDim2.new(0.68, 0, 0, 7)
+SearchBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+SearchBtn.BorderSizePixel = 0
+SearchBtn.Text = "Tìm"
+SearchBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SearchBtn.TextSize = 14
+SearchBtn.Font = Enum.Font.GothamBold
+
+-- ===== MODE =====
+local ModeFrame = Instance.new("Frame")
+ModeFrame.Parent = SearchFrame
+ModeFrame.Size = UDim2.new(0, 100, 0, 30)
+ModeFrame.Position = UDim2.new(0.82, 0, 0, 10)
+ModeFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+ModeFrame.BorderSizePixel = 0
+
+local ModeVid = Instance.new("TextButton")
+ModeVid.Parent = ModeFrame
+ModeVid.Size = UDim2.new(0.5, 0, 1, 0)
+ModeVid.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+ModeVid.BorderSizePixel = 0
+ModeVid.Text = "🎥"
+ModeVid.TextColor3 = Color3.fromRGB(255, 255, 255)
+ModeVid.TextSize = 14
+ModeVid.Font = Enum.Font.GothamBold
+
+local ModeAud = Instance.new("TextButton")
+ModeAud.Parent = ModeFrame
+ModeAud.Size = UDim2.new(0.5, 0, 1, 0)
+ModeAud.Position = UDim2.new(0.5, 0, 0, 0)
+ModeAud.BackgroundTransparency = 1
+ModeAud.BorderSizePixel = 0
+ModeAud.Text = "🎵"
+ModeAud.TextColor3 = Color3.fromRGB(150, 150, 150)
+ModeAud.TextSize = 14
+ModeAud.Font = Enum.Font.GothamBold
+
+local currentMode = "video"
+
+-- ===== VIDEO PLAYER =====
+local PlayerFrame = Instance.new("Frame")
+PlayerFrame.Parent = MainWindow
+PlayerFrame.Size = UDim2.new(1, 0, 0, 200)
+PlayerFrame.Position = UDim2.new(0, 0, 0, 90)
+PlayerFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+PlayerFrame.BorderSizePixel = 0
+
+local VideoPlayer = Instance.new("VideoFrame")
+VideoPlayer.Parent = PlayerFrame
+VideoPlayer.Size = UDim2.new(1, 0, 1, 0)
+VideoPlayer.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+
+local AudioFrame = Instance.new("Frame")
+AudioFrame.Parent = PlayerFrame
+AudioFrame.Size = UDim2.new(1, 0, 1, 0)
+AudioFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+AudioFrame.Visible = false
+
+local AudioText = Instance.new("TextLabel")
+AudioText.Parent = AudioFrame
+AudioText.Size = UDim2.new(1, 0, 1, 0)
+AudioText.BackgroundTransparency = 1
+AudioText.Text = "🎵"
+AudioText.TextColor3 = Color3.fromRGB(255, 0, 0)
+AudioText.TextSize = 60
+AudioText.Font = Enum.Font.GothamBold
+
+-- ===== NOW PLAYING =====
+local NowPlaying = Instance.new("TextLabel")
+NowPlaying.Parent = MainWindow
+NowPlaying.Size = UDim2.new(0.9, 0, 0, 25)
+NowPlaying.Position = UDim2.new(0.05, 0, 0, 295)
+NowPlaying.BackgroundTransparency = 1
+NowPlaying.Text = "Chọn video để phát"
+NowPlaying.TextColor3 = Color3.fromRGB(150, 150, 150)
+NowPlaying.TextSize = 12
+NowPlaying.Font = Enum.Font.Gotham
+NowPlaying.TextTruncate = Enum.TextTruncate.AtEnd
+
+-- ===== TIMELINE =====
+local Timeline = Instance.new("Frame")
+Timeline.Parent = MainWindow
+Timeline.Size = UDim2.new(0.9, 0, 0, 15)
+Timeline.Position = UDim2.new(0.05, 0, 0, 320)
+Timeline.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Timeline.BorderSizePixel = 0
+
+local TimelineLine = Instance.new("Frame")
+TimelineLine.Parent = Timeline
+TimelineLine.Size = UDim2.new(0, 0, 1, 0)
+TimelineLine.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+TimelineLine.BorderSizePixel = 0
+
+-- ===== CONTROLS =====
+local Controls = Instance.new("Frame")
+Controls.Parent = MainWindow
+Controls.Size = UDim2.new(1, 0, 0, 50)
+Controls.Position = UDim2.new(0, 0, 0, 340)
+Controls.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Controls.BorderSizePixel = 0
+
+local function MakeBtn(parent, pos, text, size)
+    size = size or 40
+    local btn = Instance.new("TextButton")
+    btn.Parent = parent
+    btn.Size = UDim2.new(0, size, 0, size)
+    btn.Position = pos
+    btn.BackgroundTransparency = 1
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 22
+    btn.Font = Enum.Font.GothamBold
+    return btn
 end
 
-local function Tween(obj, props, duration, style)
-    duration = duration or 0.3
-    style = style or Enum.EasingStyle.Quad
-    local tween = TweenService:Create(obj, TweenInfo.new(duration, style), props)
-    tween:Play()
-    return tween
-end
+local PlayBtn = MakeBtn(Controls, UDim2.new(0.5, -50, 0, 5), "▶", 50)
+local PrevBtn = MakeBtn(Controls, UDim2.new(0.5, -100, 0, 5), "⏮", 35)
+local NextBtn = MakeBtn(Controls, UDim2.new(0.5, 0, 0, 5), "⏭", 35)
+local LoopBtn = MakeBtn(Controls, UDim2.new(0.5, 50, 0, 5), "🔁", 35)
+
+-- ===== RESULTS =====
+local ResultsFrame = Instance.new("ScrollingFrame")
+ResultsFrame.Parent = MainWindow
+ResultsFrame.Size = UDim2.new(1, 0, 0, 100)
+ResultsFrame.Position = UDim2.new(0, 0, 0, 395)
+ResultsFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+ResultsFrame.BorderSizePixel = 0
+ResultsFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ResultsFrame.ScrollBarThickness = 4
+ResultsFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 0, 0)
 
 -- ===== SEARCH FUNCTION =====
-local searchCache = {}
 local function SearchYouTube(query)
-    if searchCache[query] then return searchCache[query] end
-    
     local response = Request({
         Method = "GET",
-        Url = Domain .. "yt/search?q=" .. HttpService:UrlEncode(query) .. "&limit=15"
+        Url = Domain .. "yt/search?q=" .. HttpService:UrlEncode(query) .. "&limit=10"
     })
-    
     if response and response.StatusCode == 200 then
-        local data = HttpService:JSONDecode(response.Body)
-        searchCache[query] = data
-        return data
+        return HttpService:JSONDecode(response.Body)
     end
     return nil
 end
 
--- ===== VIDEO/AUDIO FUNCTIONS =====
-local function RequestVideo(VideoId, type)
+-- ===== REQUEST VIDEO =====
+local function RequestVideo(videoId, type)
     type = type or "video"
     local response = Request({
         Method = "POST",
-        Url = Domain .. "yt/" .. type .. "?videoId=" .. VideoId,
+        Url = Domain .. "yt/" .. type .. "?videoId=" .. videoId,
     })
     if response and response.StatusCode == 404 then return false end
     return response and response.Body or false
 end
 
--- ===== TẠO MAIN WINDOW =====
-local MainWindow = CreateUI("Frame", {
-    Parent = ScreenGui,
-    Size = UDim2.new(0, 0, 0, 0),
-    Position = UDim2.new(0.5, 0, 0.5, 0),
-    BackgroundColor3 = Theme.Background,
-    BorderSizePixel = 0,
-    ClipsDescendants = true,
-    Visible = false,
-    BackgroundTransparency = 1,
-    ZIndex = 100,
-})
-
--- Corner cho window
-local WindowCorner = Instance.new("UICorner")
-WindowCorner.Parent = MainWindow
-WindowCorner.CornerRadius = UDim.new(0, 12)
-
--- ===== SHOW/HIDE WINDOW =====
-local function ShowWindow()
-    MainWindow.Visible = true
-    MainWindow.Size = UDim2.new(0, 0, 0, 0)
-    MainWindow.Position = UDim2.new(0.5, 0, 0.5, 0)
-    MainWindow.BackgroundTransparency = 1
-    
-    local screenSize = Instance.new("ScreenGui").AbsoluteSize
-    local width = math.min(380, screenSize.X - 20)
-    local height = math.min(600, screenSize.Y - 80)
-    
-    Tween(MainWindow, {
-        Size = UDim2.new(0, width, 0, height),
-        Position = UDim2.new(0.5, -width/2, 0.5, -height/2),
-        BackgroundTransparency = 0
-    }, 0.4)
-end
-
-local function HideWindow()
-    Tween(MainWindow, {
-        Size = UDim2.new(0, 0, 0, 0),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        BackgroundTransparency = 1
-    }, 0.3)
-    task.wait(0.3)
-    MainWindow.Visible = false
-end
-
--- ===== TITLE BAR =====
-local TitleBar = CreateUI("Frame", {
-    Parent = MainWindow,
-    Size = UDim2.new(1, 0, 0, 45),
-    BackgroundColor3 = Theme.Surface,
-    BorderSizePixel = 0,
-})
-
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.Parent = TitleBar
-TitleCorner.CornerRadius = UDim.new(0, 12)
-
-CreateUI("TextLabel", {
-    Parent = TitleBar,
-    Size = UDim2.new(0.6, 0, 1, 0),
-    Position = UDim2.new(0, 15, 0, 0),
-    BackgroundTransparency = 1,
-    Text = "🎬 YouTube Player",
-    TextColor3 = Theme.Text,
-    TextSize = 16,
-    Font = Enum.Font.GothamBold,
-    TextXAlignment = Enum.TextXAlignment.Left,
-})
-
-local CloseBtn = CreateUI("TextButton", {
-    Parent = TitleBar,
-    Size = UDim2.new(0, 50, 1, 0),
-    Position = UDim2.new(1, -50, 0, 0),
-    BackgroundTransparency = 1,
-    Text = "✕",
-    TextColor3 = Theme.TextDim,
-    TextSize = 22,
-    Font = Enum.Font.GothamBold,
-})
-CloseBtn.MouseButton1Click:Connect(HideWindow)
-CloseBtn.TouchTap:Connect(HideWindow)
-
--- ===== SEARCH BAR =====
-local SearchBar = CreateUI("Frame", {
-    Parent = MainWindow,
-    Size = UDim2.new(1, 0, 0, 65),
-    Position = UDim2.new(0, 0, 0, 45),
-    BackgroundColor3 = Theme.Surface2,
-    BorderSizePixel = 0,
-})
-
-local SearchInput = CreateUI("TextBox", {
-    Parent = SearchBar,
-    Size = UDim2.new(0.6, -15, 0, 42),
-    Position = UDim2.new(0, 10, 0, 11),
-    BackgroundColor3 = Theme.Background,
-    BorderSizePixel = 0,
-    PlaceholderText = "🔍 Tìm video...",
-    PlaceholderColor3 = Theme.TextDim,
-    TextColor3 = Theme.Text,
-    TextSize = 15,
-    Font = Enum.Font.Gotham,
-    ClearTextOnFocus = false,
-})
-
-local SearchBtn = CreateUI("TextButton", {
-    Parent = SearchBar,
-    Size = UDim2.new(0, 80, 0, 42),
-    Position = UDim2.new(0.65, 5, 0, 11),
-    BackgroundColor3 = Theme.Primary,
-    BorderSizePixel = 0,
-    Text = "Tìm",
-    TextColor3 = Theme.Text,
-    TextSize = 16,
-    Font = Enum.Font.GothamBold,
-})
-SearchBtn.MouseButton1Click:Connect(function() end)
-
--- ===== MODE SWITCH =====
-local ModeFrame = CreateUI("Frame", {
-    Parent = SearchBar,
-    Size = UDim2.new(0, 110, 0, 32),
-    Position = UDim2.new(0.8, 0, 0, 16),
-    BackgroundColor3 = Theme.Background,
-    BorderSizePixel = 0,
-})
-
-local ModeVideo = CreateUI("TextButton", {
-    Parent = ModeFrame,
-    Size = UDim2.new(0.5, 0, 1, 0),
-    BackgroundColor3 = Theme.Primary,
-    BorderSizePixel = 0,
-    Text = "🎥",
-    TextColor3 = Theme.Text,
-    TextSize = 16,
-    Font = Enum.Font.GothamBold,
-})
-
-local ModeAudio = CreateUI("TextButton", {
-    Parent = ModeFrame,
-    Size = UDim2.new(0.5, 0, 1, 0),
-    Position = UDim2.new(0.5, 0, 0, 0),
-    BackgroundTransparency = 1,
-    BorderSizePixel = 0,
-    Text = "🎵",
-    TextColor3 = Theme.TextDim,
-    TextSize = 16,
-    Font = Enum.Font.GothamBold,
-})
-
-local currentMode = "video"
-
--- ===== PLAYER AREA =====
-local PlayerArea = CreateUI("Frame", {
-    Parent = MainWindow,
-    Size = UDim2.new(1, 0, 0, 220),
-    Position = UDim2.new(0, 0, 0, 110),
-    BackgroundColor3 = Theme.Background,
-    BorderSizePixel = 0,
-})
-
-local VideoPlayer = CreateUI("VideoFrame", {
-    Parent = PlayerArea,
-    Size = UDim2.new(1, 0, 1, 0),
-    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-    Visible = true,
-})
-
-local AudioPlayer = CreateUI("Frame", {
-    Parent = PlayerArea,
-    Size = UDim2.new(1, 0, 1, 0),
-    BackgroundColor3 = Color3.fromRGB(20, 20, 30),
-    Visible = false,
-})
-
-CreateUI("TextLabel", {
-    Parent = AudioPlayer,
-    Size = UDim2.new(1, 0, 0.5, 0),
-    Position = UDim2.new(0, 0, 0.2, 0),
-    BackgroundTransparency = 1,
-    Text = "🎵",
-    TextColor3 = Theme.Primary,
-    TextSize = 50,
-    Font = Enum.Font.GothamBold,
-})
-
-CreateUI("TextLabel", {
-    Parent = AudioPlayer,
-    Size = UDim2.new(0.8, 0, 0, 25),
-    Position = UDim2.new(0.1, 0, 0.7, 0),
-    BackgroundTransparency = 1,
-    Text = "Đang phát Audio...",
-    TextColor3 = Theme.TextDim,
-    TextSize = 13,
-    Font = Enum.Font.Gotham,
-})
-
--- ===== NOW PLAYING =====
-local NowPlaying = CreateUI("TextLabel", {
-    Parent = MainWindow,
-    Size = UDim2.new(0.9, 0, 0, 28),
-    Position = UDim2.new(0.05, 0, 0, 335),
-    BackgroundTransparency = 1,
-    Text = "👆 Chọn video để phát",
-    TextColor3 = Theme.TextDim,
-    TextSize = 12,
-    Font = Enum.Font.Gotham,
-    TextTruncate = Enum.TextTruncate.AtEnd,
-})
-
--- ===== TIMELINE =====
-local Timeline = CreateUI("Frame", {
-    Parent = MainWindow,
-    Size = UDim2.new(0.9, 0, 0, 20),
-    Position = UDim2.new(0.05, 0, 0, 362),
-    BackgroundColor3 = Theme.Surface,
-    BorderSizePixel = 0,
-})
-
-local TimelineLine = CreateUI("Frame", {
-    Parent = Timeline,
-    Size = UDim2.new(0, 0, 1, 0),
-    BackgroundColor3 = Theme.Primary,
-    BorderSizePixel = 0,
-})
-
--- ===== CONTROLS =====
-local Controls = CreateUI("Frame", {
-    Parent = MainWindow,
-    Size = UDim2.new(1, 0, 0, 55),
-    Position = UDim2.new(0, 0, 0, 385),
-    BackgroundColor3 = Theme.Surface,
-    BorderSizePixel = 0,
-})
-
-local function CreateControlButton(parent, pos, text, size)
-    size = size or 50
-    local btn = CreateUI("TextButton", {
-        Parent = parent,
-        Size = UDim2.new(0, size, 0, size),
-        Position = pos,
-        BackgroundTransparency = 1,
-        Text = text,
-        TextColor3 = Theme.Text,
-        TextSize = 26,
-        Font = Enum.Font.GothamBold,
-    })
-    return btn
-end
-
-local PlayBtn = CreateControlButton(Controls, UDim2.new(0.5, -65, 0, 2), "▶", 50)
-local PrevBtn = CreateControlButton(Controls, UDim2.new(0.5, -120, 0, 2), "⏮", 40)
-local NextBtn = CreateControlButton(Controls, UDim2.new(0.5, -10, 0, 2), "⏭", 40)
-local LoopBtn = CreateControlButton(Controls, UDim2.new(0.5, 45, 0, 2), "🔁", 40)
-
--- ===== RESULTS AREA =====
-local ResultsArea = CreateUI("ScrollingFrame", {
-    Parent = MainWindow,
-    Size = UDim2.new(1, 0, 0, 110),
-    Position = UDim2.new(0, 0, 0, 440),
-    BackgroundColor3 = Theme.Surface2,
-    BorderSizePixel = 0,
-    CanvasSize = UDim2.new(0, 0, 0, 0),
-    ScrollBarThickness = 6,
-    ScrollBarImageColor3 = Theme.Primary,
-    Visible = true,
-})
-
 -- ===== DISPLAY RESULTS =====
 local function DisplayResults(results)
-    for _, child in pairs(ResultsArea:GetChildren()) do
-        if child:IsA("ImageButton") or child:IsA("TextLabel") or child:IsA("Frame") then
+    for _, child in pairs(ResultsFrame:GetChildren()) do
+        if child:IsA("Frame") or child:IsA("TextLabel") then
             child:Destroy()
         end
     end
     
     if not results or #results == 0 then
-        local empty = CreateUI("TextLabel", {
-            Parent = ResultsArea,
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundTransparency = 1,
-            Text = "Không tìm thấy video",
-            TextColor3 = Theme.TextDim,
-            TextSize = 15,
-            Font = Enum.Font.Gotham,
-        })
+        local empty = Instance.new("TextLabel")
+        empty.Parent = ResultsFrame
+        empty.Size = UDim2.new(1, 0, 1, 0)
+        empty.BackgroundTransparency = 1
+        empty.Text = "Không tìm thấy"
+        empty.TextColor3 = Color3.fromRGB(150, 150, 150)
+        empty.TextSize = 14
+        empty.Font = Enum.Font.Gotham
         return
     end
     
     local y = 0
     for i, video in ipairs(results) do
-        local item = CreateUI("Frame", {
-            Parent = ResultsArea,
-            Size = UDim2.new(1, -20, 0, 70),
-            Position = UDim2.new(0, 10, 0, y),
-            BackgroundColor3 = Theme.Surface,
-            BorderSizePixel = 0,
-        })
+        local item = Instance.new("Frame")
+        item.Parent = ResultsFrame
+        item.Size = UDim2.new(1, -20, 0, 60)
+        item.Position = UDim2.new(0, 10, 0, y)
+        item.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        item.BorderSizePixel = 0
         
-        local btn = CreateUI("TextButton", {
-            Parent = item,
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundTransparency = 1,
-            Text = "",
-        })
+        local btn = Instance.new("TextButton")
+        btn.Parent = item
+        btn.Size = UDim2.new(1, 0, 1, 0)
+        btn.BackgroundTransparency = 1
+        btn.Text = ""
         
-        CreateUI("TextLabel", {
-            Parent = item,
-            Size = UDim2.new(0.7, -20, 0.5, 0),
-            Position = UDim2.new(0, 10, 0, 5),
-            BackgroundTransparency = 1,
-            Text = video.title or "Unknown",
-            TextColor3 = Theme.Text,
-            TextSize = 13,
-            Font = Enum.Font.GothamBold,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            TextWrapped = true,
-        })
+        local title = Instance.new("TextLabel")
+        title.Parent = item
+        title.Size = UDim2.new(0.7, -10, 0.5, 0)
+        title.Position = UDim2.new(0, 10, 0, 5)
+        title.BackgroundTransparency = 1
+        title.Text = video.title or "Unknown"
+        title.TextColor3 = Color3.fromRGB(255, 255, 255)
+        title.TextSize = 12
+        title.Font = Enum.Font.GothamBold
+        title.TextXAlignment = Enum.TextXAlignment.Left
+        title.TextWrapped = true
         
-        CreateUI("TextLabel", {
-            Parent = item,
-            Size = UDim2.new(0.7, -20, 0.3, 0),
-            Position = UDim2.new(0, 10, 0, 38),
-            BackgroundTransparency = 1,
-            Text = video.channel or "Unknown",
-            TextColor3 = Theme.TextDim,
-            TextSize = 11,
-            Font = Enum.Font.Gotham,
-            TextXAlignment = Enum.TextXAlignment.Left,
-        })
+        local channel = Instance.new("TextLabel")
+        channel.Parent = item
+        channel.Size = UDim2.new(0.7, -10, 0.3, 0)
+        channel.Position = UDim2.new(0, 10, 0, 32)
+        channel.BackgroundTransparency = 1
+        channel.Text = video.channel or "Unknown"
+        channel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        channel.TextSize = 11
+        channel.Font = Enum.Font.Gotham
+        channel.TextXAlignment = Enum.TextXAlignment.Left
         
-        CreateUI("TextLabel", {
-            Parent = item,
-            Size = UDim2.new(0.2, 0, 0.3, 0),
-            Position = UDim2.new(0.78, 0, 0.6, 0),
-            BackgroundTransparency = 1,
-            Text = video.duration or "--:--",
-            TextColor3 = Theme.TextDim,
-            TextSize = 11,
-            Font = Enum.Font.Gotham,
-            TextXAlignment = Enum.TextXAlignment.Right,
-        })
+        local duration = Instance.new("TextLabel")
+        duration.Parent = item
+        duration.Size = UDim2.new(0.2, 0, 0.3, 0)
+        duration.Position = UDim2.new(0.78, 0, 0.5, 0)
+        duration.BackgroundTransparency = 1
+        duration.Text = video.duration or "--:--"
+        duration.TextColor3 = Color3.fromRGB(150, 150, 150)
+        duration.TextSize = 11
+        duration.Font = Enum.Font.Gotham
+        duration.TextXAlignment = Enum.TextXAlignment.Right
         
         btn.MouseButton1Click:Connect(function()
             PlayVideo(video.videoId, video)
         end)
-        btn.TouchTap:Connect(function()
-            PlayVideo(video.videoId, video)
-        end)
         
-        y = y + 75
+        y = y + 65
     end
     
-    ResultsArea.CanvasSize = UDim2.new(0, 0, 0, y)
+    ResultsFrame.CanvasSize = UDim2.new(0, 0, 0, y)
 end
 
--- ===== PLAY FUNCTION =====
-local soundInstance = nil
+-- ===== PLAY VIDEO =====
+local soundInst = nil
 local isPlaying = false
 local isLooping = false
-local currentVideoId = nil
+local currentVideo = nil
 
 local function PlayVideo(videoId, videoData)
     if not videoId then return end
     
-    currentVideoId = videoId
+    currentVideo = videoId
     local mediaType = currentMode
-    local fileExt = mediaType == "video" and "webm" or "mp3"
-    local filePath = "youtube_media/" .. mediaType .. "s/" .. videoId .. "." .. fileExt
+    local ext = mediaType == "video" and "webm" or "mp3"
+    local path = "youtube_media/" .. mediaType .. "s/" .. videoId .. "." .. ext
     
     if videoData and videoData.title then
         NowPlaying.Text = "▶ " .. videoData.title
-        NowPlaying.TextColor3 = Theme.Text
-    else
-        NowPlaying.Text = "▶ Đang tải..."
+        NowPlaying.TextColor3 = Color3.fromRGB(255, 255, 255)
     end
     
-    if not isfile(filePath) then
-        local loading = CreateUI("TextLabel", {
-            Parent = PlayerArea,
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundTransparency = 1,
-            Text = "⏳ Đang tải...",
-            TextColor3 = Theme.Text,
-            TextSize = 24,
-            Font = Enum.Font.GothamBold,
-            ZIndex = 10,
-        })
+    if not isfile(path) then
+        local loading = Instance.new("TextLabel")
+        loading.Parent = PlayerFrame
+        loading.Size = UDim2.new(1, 0, 1, 0)
+        loading.BackgroundTransparency = 1
+        loading.Text = "⏳ Đang tải..."
+        loading.TextColor3 = Color3.fromRGB(255, 255, 255)
+        loading.TextSize = 20
+        loading.Font = Enum.Font.GothamBold
+        loading.ZIndex = 10
         
         local data = RequestVideo(videoId, mediaType)
         loading:Destroy()
         
         if data then
-            writefile(filePath, data)
+            writefile(path, data)
         else
-            NowPlaying.Text = "❌ Lỗi tải video!"
+            NowPlaying.Text = "❌ Lỗi tải!"
             NowPlaying.TextColor3 = Color3.fromRGB(255, 50, 50)
             return
         end
@@ -522,92 +383,70 @@ local function PlayVideo(videoId, videoData)
     
     if mediaType == "video" then
         VideoPlayer.Visible = true
-        AudioPlayer.Visible = false
-        VideoPlayer.Video = GetAsset(filePath)
+        AudioFrame.Visible = false
+        VideoPlayer.Video = GetAsset(path)
         VideoPlayer:Play()
-        PlayBtn.Text = "⏸"
-        isPlaying = true
-        FloatingButton.Text = "⏸"
     else
         VideoPlayer.Visible = false
-        AudioPlayer.Visible = true
-        if soundInstance then soundInstance:Destroy() end
-        soundInstance = Instance.new("Sound")
-        soundInstance.SoundId = GetAsset(filePath)
-        soundInstance.Parent = AudioPlayer
-        soundInstance:Play()
-        PlayBtn.Text = "⏸"
-        isPlaying = true
-        FloatingButton.Text = "⏸"
-    end
-end
-
--- ===== SEARCH BUTTON =====
-SearchBtn.MouseButton1Click:Connect(function()
-    local query = SearchInput.Text
-    if #query < 2 then 
-        NowPlaying.Text = "⚠️ Nhập ít nhất 2 ký tự"
-        NowPlaying.TextColor3 = Color3.fromRGB(255, 200, 0)
-        return 
+        AudioFrame.Visible = true
+        if soundInst then soundInst:Destroy() end
+        soundInst = Instance.new("Sound")
+        soundInst.SoundId = GetAsset(path)
+        soundInst.Parent = AudioFrame
+        soundInst:Play()
     end
     
+    PlayBtn.Text = "⏸"
+    isPlaying = true
+    FloatBtn.Text = "⏸"
+end
+
+-- ===== SEARCH =====
+SearchBtn.MouseButton1Click:Connect(function()
+    local query = SearchBox.Text
+    if #query < 2 then return end
+    
     NowPlaying.Text = "🔍 Đang tìm: " .. query
-    NowPlaying.TextColor3 = Theme.TextDim
+    NowPlaying.TextColor3 = Color3.fromRGB(150, 150, 150)
     
     local results = SearchYouTube(query)
     if results then
         DisplayResults(results)
         NowPlaying.Text = "✅ Tìm thấy " .. #results .. " kết quả"
-        NowPlaying.TextColor3 = Theme.Accent
+        NowPlaying.TextColor3 = Color3.fromRGB(0, 150, 255)
         task.wait(1.5)
         NowPlaying.Text = "Chọn video để phát"
-        NowPlaying.TextColor3 = Theme.TextDim
+        NowPlaying.TextColor3 = Color3.fromRGB(150, 150, 150)
     else
-        NowPlaying.Text = "❌ Không tìm thấy kết quả"
+        NowPlaying.Text = "❌ Không tìm thấy"
         NowPlaying.TextColor3 = Color3.fromRGB(255, 50, 50)
     end
 end)
 
-SearchBtn.TouchTap:Connect(function()
-    SearchBtn.MouseButton1Click:Fire()
-end)
-
-SearchInput.FocusLost:Connect(function(enter)
-    if enter then
-        SearchBtn.MouseButton1Click:Fire()
-    end
-end)
-
--- ===== MODE SWITCH =====
-ModeVideo.MouseButton1Click:Connect(function()
+-- ===== MODE =====
+ModeVid.MouseButton1Click:Connect(function()
     currentMode = "video"
-    ModeVideo.BackgroundColor3 = Theme.Primary
-    ModeVideo.TextColor3 = Theme.Text
-    ModeAudio.BackgroundTransparency = 1
-    ModeAudio.TextColor3 = Theme.TextDim
+    ModeVid.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    ModeVid.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ModeAud.BackgroundTransparency = 1
+    ModeAud.TextColor3 = Color3.fromRGB(150, 150, 150)
     VideoPlayer.Visible = true
-    AudioPlayer.Visible = false
-end)
-ModeVideo.TouchTap:Connect(function()
-    ModeVideo.MouseButton1Click:Fire()
+    AudioFrame.Visible = false
 end)
 
-ModeAudio.MouseButton1Click:Connect(function()
+ModeAud.MouseButton1Click:Connect(function()
     currentMode = "audio"
-    ModeAudio.BackgroundColor3 = Theme.Primary
-    ModeAudio.TextColor3 = Theme.Text
-    ModeVideo.BackgroundTransparency = 1
-    ModeVideo.TextColor3 = Theme.TextDim
+    ModeAud.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    ModeAud.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ModeVid.BackgroundTransparency = 1
+    ModeVid.TextColor3 = Color3.fromRGB(150, 150, 150)
     VideoPlayer.Visible = false
-    AudioPlayer.Visible = true
-end)
-ModeAudio.TouchTap:Connect(function()
-    ModeAudio.MouseButton1Click:Fire()
+    AudioFrame.Visible = true
 end)
 
--- ===== PLAYBACK CONTROLS =====
+-- ===== CONTROLS =====
 PlayBtn.MouseButton1Click:Connect(function()
-    if currentVideoId == nil then
+    if currentVideo == nil then
         PlayVideo("dQw4w9WgXcQ", {
             title = "Rick Astley - Never Gonna Give You Up",
             channel = "Rick Astley",
@@ -620,161 +459,74 @@ PlayBtn.MouseButton1Click:Connect(function()
         if currentMode == "video" then
             VideoPlayer:Pause()
         else
-            if soundInstance then soundInstance:Pause() end
+            if soundInst then soundInst:Pause() end
         end
         PlayBtn.Text = "▶"
         isPlaying = false
-        FloatingButton.Text = "▶"
+        FloatBtn.Text = "▶"
     else
         if currentMode == "video" then
             VideoPlayer:Play()
         else
-            if soundInstance then soundInstance:Resume() end
+            if soundInst then soundInst:Resume() end
         end
         PlayBtn.Text = "⏸"
         isPlaying = true
-        FloatingButton.Text = "⏸"
+        FloatBtn.Text = "⏸"
     end
-end)
-PlayBtn.TouchTap:Connect(function()
-    PlayBtn.MouseButton1Click:Fire()
 end)
 
 LoopBtn.MouseButton1Click:Connect(function()
     isLooping = not isLooping
-    LoopBtn.TextColor3 = isLooping and Theme.Primary or Theme.Text
+    LoopBtn.TextColor3 = isLooping and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(255, 255, 255)
     if currentMode == "video" then
         VideoPlayer.Looped = isLooping
     else
-        if soundInstance then soundInstance.Looped = isLooping end
+        if soundInst then soundInst.Looped = isLooping end
     end
 end)
-LoopBtn.TouchTap:Connect(function()
-    LoopBtn.MouseButton1Click:Fire()
-end)
 
-PrevBtn.MouseButton1Click:Connect(function()
-    NowPlaying.Text = "⏮ Quay lại video trước"
-    NowPlaying.TextColor3 = Theme.TextDim
-end)
-PrevBtn.TouchTap:Connect(function()
-    PrevBtn.MouseButton1Click:Fire()
-end)
-
-NextBtn.MouseButton1Click:Connect(function()
-    NowPlaying.Text = "⏭ Video tiếp theo"
-    NowPlaying.TextColor3 = Theme.TextDim
-end)
-NextBtn.TouchTap:Connect(function()
-    NextBtn.MouseButton1Click:Fire()
-end)
-
--- ===== TIMELINE UPDATE =====
+-- ===== TIMELINE =====
 RunService.RenderStepped:Connect(function()
     if currentMode == "video" and VideoPlayer.Visible and VideoPlayer.IsLoaded then
         if VideoPlayer.TimeLength > 0 then
             local progress = VideoPlayer.TimePosition / VideoPlayer.TimeLength
             TimelineLine.Size = UDim2.new(math.clamp(progress, 0, 1), 0, 1, 0)
         end
-    elseif currentMode == "audio" and soundInstance and soundInstance.IsLoaded then
-        if soundInstance.TimeLength > 0 then
-            local progress = soundInstance.TimePosition / soundInstance.TimeLength
+    elseif currentMode == "audio" and soundInst and soundInst.IsLoaded then
+        if soundInst.TimeLength > 0 then
+            local progress = soundInst.TimePosition / soundInst.TimeLength
             TimelineLine.Size = UDim2.new(math.clamp(progress, 0, 1), 0, 1, 0)
         end
     end
 end)
 
--- ===== TIMELINE TOUCH =====
 Timeline.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         local pos = input.Position.X - Timeline.AbsolutePosition.X
         local progress = math.clamp(pos / Timeline.AbsoluteSize.X, 0, 1)
-        
         if currentMode == "video" and VideoPlayer.Visible and VideoPlayer.IsLoaded then
             VideoPlayer.TimePosition = VideoPlayer.TimeLength * progress
-        elseif currentMode == "audio" and soundInstance and soundInstance.IsLoaded then
-            soundInstance.TimePosition = soundInstance.TimeLength * progress
+        elseif currentMode == "audio" and soundInst and soundInst.IsLoaded then
+            soundInst.TimePosition = soundInst.TimeLength * progress
         end
     end
 end)
 
--- ===== FLOATING BUTTON TOGGLE =====
+-- ===== FLOATING BUTTON =====
 local menuOpen = false
-FloatingButton.MouseButton1Click:Connect(function()
-    if menuOpen then
-        HideWindow()
-        menuOpen = false
-    else
-        ShowWindow()
-        menuOpen = true
-    end
+FloatBtn.MouseButton1Click:Connect(function()
+    menuOpen = not menuOpen
+    MainWindow.Visible = menuOpen
 end)
 
-FloatingButton.TouchTap:Connect(function()
-    if menuOpen then
-        HideWindow()
-        menuOpen = false
-    else
-        ShowWindow()
-        menuOpen = true
-    end
-end)
-
--- ===== DRAG FLOATING BUTTON =====
-local isDragging = false
-local dragStartPos = nil
-local startButtonPos = nil
-
-FloatingButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        isDragging = true
-        dragStartPos = input.Position
-        startButtonPos = FloatingButton.Position
-    end
-end)
-
-FloatingButton.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        isDragging = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if isDragging and input.UserInputType == Enum.UserInputType.Touch then
-        local delta = input.Position - dragStartPos
-        local newX = startButtonPos.X.Offset + delta.X
-        local newY = startButtonPos.Y.Offset + delta.Y
-        FloatingButton.Position = UDim2.new(0, newX, 0, newY)
-    end
-end)
-
--- ===== LOAD DEMO RESULTS =====
+-- ===== DEMO =====
 task.wait(0.5)
-local demoResults = {
-    {
-        videoId = "dQw4w9WgXcQ",
-        title = "Rick Astley - Never Gonna Give You Up",
-        channel = "Rick Astley",
-        duration = "3:33",
-    },
-    {
-        videoId = "JGwWNGJdvx8",
-        title = "Despacito - Luis Fonsi ft. Daddy Yankee",
-        channel = "Luis Fonsi",
-        duration = "4:41",
-    },
-    {
-        videoId = "fJ9rUzIMcZQ",
-        title = "Queen - Bohemian Rhapsody",
-        channel = "Queen Official",
-        duration = "5:55",
-    }
-}
-DisplayResults(demoResults)
+DisplayResults({
+    {videoId = "dQw4w9WgXcQ", title = "Rick Astley - Never Gonna Give You Up", channel = "Rick Astley", duration = "3:33"},
+    {videoId = "JGwWNGJdvx8", title = "Despacito - Luis Fonsi ft. Daddy Yankee", channel = "Luis Fonsi", duration = "4:41"},
+    {videoId = "fJ9rUzIMcZQ", title = "Queen - Bohemian Rhapsody", channel = "Queen Official", duration = "5:55"},
+})
 
-print("🎬 YouTube Pro Player V2.3 - Mobile Fixed!")
-print("📱 Hướng dẫn:")
-print("  1. 👆 Chạm nút đỏ ▶ để mở menu")
-print("  2. 🔍 Nhập từ khóa → Chạm Tìm")
-print("  3. 👆 Chạm kết quả để phát")
-print("  4. 🔴 Kéo thả nút đỏ để di chuyển")
+print("✅ YouTube Player đã sẵn sàng!")
+print("📱 Chạm nút đỏ để mở menu")
